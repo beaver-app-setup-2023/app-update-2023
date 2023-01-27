@@ -1,0 +1,11 @@
+name: NatureScotBeaverApp
+title:
+username:
+account: naturalandenvironmentalscience
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 8022516
+bundleId: 6726150
+url: https://naturalandenvironmentalscience.shinyapps.io/NatureScotBeaverApp/
+when: 1673539543.04316
+lastSyncTime: 1673539543.04319

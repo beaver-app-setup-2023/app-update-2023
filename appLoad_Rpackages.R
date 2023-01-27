@@ -1,0 +1,43 @@
+cat(" R packages  -  ")
+
+options("rgdal_show_exportToProj4_warnings"="none")
+# before loading sp or rgdal. 
+# To mute warnings of possible GDAL/OSR exportToProj4() degradation
+# R packages (excl shiny)
+library(zip)
+library(here)
+library(spatstat)
+# library(shiny)
+library(Rfast)
+library(shinyjs) 
+library(ggplot2)
+library(ggspatial)
+library(sf)
+library(raster)
+library(shinythemes)
+library(shinyWidgets)  
+library(lwgeom)
+library(nngeo)
+library(dplyr)
+library(viridis)
+library(png)
+library(grid)
+library(shinybusy)
+library(stringr)
+library(shinyBS)
+library(plotly)
+library(rgdal)
+library(raster)
+library(rgeos)
+library(stars)
+library(ggnewscale)   
+library(shinyEffects)
+library(ggrepel)
+library(rgee)
+
+
+rasterOptions(maxmemory = 1e+09)
+rasterOptions(tmpdir="temp_files")   
+ 
+
+source (here::here("appLoadHelpers.R"))  
