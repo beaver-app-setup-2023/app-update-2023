@@ -1,29 +1,32 @@
-# Standard Project
-A template repo for the standard RSE project
+# A Beaver Translocation Simulation App
+Major updates to a Shiny App developped by zelda at the University of Newcastle (UK) for NatureScot (Nov. 2022).
 
 ## About
+As part of a beaver landscape modelling tender Newcastle University produced a desk-based tool to inform future beaver management decision-making with the initial aims to : 
+- work with NatureScot staff (and potentially other stakeholders) in designing and producing a desk-based tool which applies the beaver population model, and informs beaver management decision-making
 
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed sollicitudin ante at eleifend eleifend. Sed non vestibulum nisi. Aliquam vel condimentum quam. Donec fringilla et purus at auctor. Praesent euismod vitae metus non consectetur. Sed interdum aliquet nisl at efficitur. Nulla urna quam, gravida eget elementum eget, mattis nec tortor. Fusce ut neque tellus. Integer at magna feugiat lacus porta posuere eget vitae metus.
+- assess to what extent other models (e.g. the beaver dam capacity model) can be built into the desk-based tool and, if feasible, to incorporate them into the desk-based tool
 
-Curabitur a tempus arcu. Maecenas blandit risus quam, quis convallis justo pretium in. Suspendisse rutrum, elit at venenatis cursus, dolor ligula iaculis dui, ut dignissim enim justo at ligula. Donec interdum dignissim egestas. Nullam nec ultrices enim. Nam quis arcu tincidunt, auctor purus sit amet, aliquam libero. Fusce rhoncus lectus ac imperdiet varius. Sed gravida urna eros, ac luctus justo condimentum nec. Integer ultrices nibh in neque sagittis, at pretium erat pretium. Praesent feugiat purus id iaculis laoreet. Proin in tellus tristique, congue ante in, sodales quam. Sed imperdiet est tortor, eget vestibulum tortor pulvinar volutpat. In et pretium nisl.
+The app was developed using the Beauly catchment as an example with a view to extending the capability to other potential release areas. User documentation reports the current capabilities, limitations and future developments discussed with NatureScot colleagues (available from).
+
+[App User documentation - 12 jan 2023.pdf](https://github.com/zeldavanderwaal/Scotland-Beaver-App/files/10458558/Beaver.app.guidance.-.12.jan.2023.pdf)
+
 
 ### Project Team
-Dr L. Ipsum, Newcastle University  ([lorem.ipsum@newcastle.ac.uk](mailto:lorem.ipsum@newcastle.ac.uk))  
-Professor D. Sit Amet, XY University  ([d.sit.amet@newcastle.ac.uk](mailto:d.sit.amet@example.com))  
+Dr Zelda van der Waal, Newcastle University  ([zelda.vanderwaal@newcastle.ac.uk](mailto:zelda.vanderwaal@newcastle.ac.uk))  
+Professor Aileen Mill, Newcastle University  ([aileen.mill@newcastle.ac.uk](mailto:aileen.mill@newcastle.ac.uk))  
 
 ### RSE Contact
-C. Adipiscing  
+Whowillitbe
 RSE Team  
 Newcastle University  
 ([consectetur.adpiscing@newcastle.ac.uk](mailto:consectetur.adpiscing@newcastle.ac.uk))  
 
 ## Built With
 
-This section is intended to list the frameworks and tools you're using to develop this software. Please link to the home page or documentatation in each case.
+Shiny for Rstudio
 
-[Framework 1](https://something.com)  
-[Framework 2](https://something.com)  
-[Framework 3](https://something.com)  
+[Link to Shiny main page](https://shiny.rstudio.com/)  
 
 ## Getting Started
 
