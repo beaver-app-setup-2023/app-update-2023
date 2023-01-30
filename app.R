@@ -3,6 +3,8 @@
 ################      BEAVER TRANSLOCATION SIMULTATION APP      ################
 ################        for NatureScot Nov. 2022                ################
 ################        shiny code - ui+server                  ################
+################                                                ################
+################          UPDATING - 2023                       ################
 ################################################################################        
  
 
@@ -153,9 +155,8 @@ mainPanel(  shinyjs::useShinyjs(), width = 8,
                                            tags$style(HTML("input[type='radio']  {background:black;accent-color:orange;padding-left:20px;transform: scale(1.5); }")),
                                            radioButtons( inputId = "Nsites",label=NULL, 
                                                     choiceNames =  list(  p(span("automated release locations ",style = "color:yellow;padding-right:200px;"),span("double-click on the map to sample (or resample) randomly distributed release locations within any suitable habitat within the extent.", style = "color:beige")),  
-                                                                          p(span("specify each release point ",style = "color:yellow;padding-right:400px;"),span("locate each release point on the map with one double-click per location.", style = " color:beige")) ,
-                                                                           p(span("start from a single release point ",style = "color:yellow;padding-right:200px;"),span("\nlocate one starting point on the map with a double-click to concentrate starting territories around the location.", style = " color:beige")) ),
-                                                     choiceValues= c("random_location_across" ,"each_pt_on_map","single_release_pt"  ),
+                                                                          p(span("specify each release point ",style = "color:yellow;padding-right:400px;"),span("locate each release point on the map with one double-click per location.", style = " color:beige"))  ),
+                                                     choiceValues= c("random_location_across" ,"each_pt_on_map" ),
                                                      selected =  "random_location_across") 
                                       )), 
                                    
@@ -756,64 +757,39 @@ server <-function(input, output, session ) {
  
   
 
-#### source code - list scripts by type
+#### source scripts
+#### 
+#  AppFun_mapX_    functions to generate maps in app (numbers chronological not in code)
+#  AppFun_sim      functions to run sim in app
+#  AppFun_misc_    other functions relating to app
+#  initLoad_val_   envir, data, maps etc loaded on init 
+#  ModDat_         values relating to simulation code
+#  ModFun_         functions relating to simluation code
  
-     source_R <- unlist(list.files(here::here(),pattern="appLoad_R"))
+     source_R <- unlist(list.files(here::here(),pattern="initLoad_Rlibs"))
        cat("load envir\n")  
      for(sc in source_R) { source(sc)}
 
- update_busy_bar(10)    
+     update_busy_bar(10)    
  
-     source_BeaverSimModel_data      <- unlist(list.files(here(),pattern="appLoad_ModDat"))
-     source_BeaverSimModel_functions <- unlist(list.files(here(),pattern="appLoad_ModFun"))
-     source_App_init <- unlist(list.files(here(),pattern="appFun_initVals"))
-     source_App_Functions_sim <- unlist(list.files(here(),pattern="appFun_sim"))
-     source_App_Functions_map <- unlist(list.files(here(),pattern="appFun_map"))
-     source_App_Functions_dl <- unlist(list.files(here(),pattern="appFun_dl"))
-     source_App_GISdat_region <- unlist(list.files(here(),pattern="appFun_initGIS_region")) # jan see
-     source_App_UItext <- unlist(list.files(here(),pattern="appLoad_UI"))
+     source_IBMcode      <- unlist(list.files(here(),pattern="Mod"))
+     source_App_Functions  <- unlist(list.files(here(),pattern="AppFun_"))
+     source_App_initVals <- unlist(list.files(here(),pattern="initLoad_val")) 
      
-       
- update_busy_bar(40)
-     
-#### source code 
-
- 
   cat("\n\nload init reactives\n")  
-     for(sc in source_App_init) { source(sc)}    
+     for(sc in source_App_initVals) { source(sc)}    
  
   cat("\n\nload data\n")
-     for(sc in source_BeaverSimModel_data) { source(sc) }
+     for(sc in source_IBMcode) { source(sc) }
      
-  cat("\n\nload beaver pop simulation functions\n")
-     for(sc in source_BeaverSimModel_functions) { source(sc)  }
-   
-  cat("\n\nload Shiny simulation functions\n")
-     for(sc in source_App_Functions_sim) { source(sc) }
-
-  cat("\n\nload Shiny mapping functions\n")
-     for(sc in source_App_Functions_map) { source(sc) }
-     
-  cat("\n\nload Shiny dl functions\n")
-     for(sc in source_App_Functions_dl) { source(sc)
-        }
-  cat("\n\nload UI text\n")
-     for(sc in source_App_UItext) { source(sc)  }
- 
-    
-  
-  
-##GIS - will index by org/region in UI - keep filename       
- cat("\n\nload region GIS data\n")  
-     for(sc in source_App_GISdat_region) { 
-      source(sc)  }    
-
-
-
-source(here::here("appSepExtents.R") )  # includes beualy to affric extent and major updates
-    savedat$p1= p0 
-  
-   
+  cat("\n\nload beaver pop simulation functions and params\n")
+     for(sc in source_App_Functions ) { source(sc)  }
+       
+     update_busy_bar(40)      
+  cat("\n\nload region GIS data\n")  
+     source(here::here("initLoad_GIS_regionbbox.R") )  # source GIS stuff files in cascade - may use to filter file loading/region
+  update_busy_bar(90) 
+     savedat$p1= p0 
   update_busy_bar(100)
  
  
@@ -1262,8 +1238,6 @@ observeEvent(rvsim$sim_pop,{
   
  
   
-# in readOGR ====verbose=FALSE
-
  
 ################################################################################################################ Download output - all at once / zipped 
 filelist <-NULL
@@ -1310,7 +1284,7 @@ observeEvent(rvsim$trig,{   # once simulations completed
              st_crs(sim_bbox) <- mercproj
       rvsim$LocalHab <- st_crop(HabMapLayers,sim_bbox) 
       cat("habitat  -  ")
-      rvsim$ext_UKbound <- st_crop(UKbound , sim_bbox)  
+      rvsim$ext_coastline <- st_crop(coastline , sim_bbox)  
       rvsim$ext_region_box <- st_crop(region_box,sim_bbox) 
       cat("land  -  ")
       update_busy_bar(50) 
@@ -1323,9 +1297,9 @@ observeEvent(rvsim$trig,{   # once simulations completed
       cat("text\n")
       update_busy_bar(70)
           
-      cat("generate output maps (base)  - ")  
+      cat("generate output maps  - ")  
          rvsim_out$new_ext_sim    <-  sim_bbox # rvsim$FUN_map_output_yALL_out[[4]]
-         rvsim_out$mapsim_output0 <-  mapsim_output_function() # rvsim$FUN_map_output_yALL_out[[5]] uses new extent new_ext_sim 
+         rvsim_out$mapsim_output0 <-  FUN_mapsim_output_function( region_box, new_ext_sim = rvsim_out$new_ext_sim, rivlines, HabMapLayers, BackLayers, BackPoints, BackText) #  uses new extent new_ext_sim ## jan* partition
       
          rvsim$FUN_map_output_yALL_out <- FUN_map_output_yALL(start_terr=rvsim$start_pop[rvsim$start_pop$layer =="starting territories" ,],      
                                                               sim_terr3=rvsim$fam_sim3,sim_terr= rvsim$fam_sim, sim_terr10 = rvsim$fam_sim10 ,
@@ -1346,7 +1320,7 @@ observeEvent(rvsim$trig,{   # once simulations completed
          
          rvsim$mapsim0_finext <- rvsim$mapsim0_finext0 <-  FUN_mapsim0_finext(start_terr= rvsim$start_pop[rvsim$start_pop$layer =="starting territories" ,], mapsim_output0=rvsim_out$mapsim_output0 )  # nb- is built with rvsim_out$mapsim_output0 + init terrs  
          cat("crop extra hab layers  - ")
-            extra_HabLayers_c <- st_crop(extra_HabLayers_l ,  sim_bbox )   ## here can be topo issue with original shp cant use intersection() so using crop but mh
+      #      extra_HabLayers_c <- st_crop(extra_HabLayers_l ,  sim_bbox )   ## here can be topo issue with original shp cant use intersection() so using crop but mh
          cat("catchments layers  - ")  
         catch_polys  <- st_crop(intcatch$geometry,  sim_bbox )
         catch_polys0 <- st_sf(geometry=st_union(catch_polys[lengths(st_intersects(catch_polys, st_union( rvsim$lay_release_pts_new ))) ==0]),year=0)
@@ -1357,7 +1331,7 @@ observeEvent(rvsim$trig,{   # once simulations completed
          if(rvsim$mgmt.years == 10) { 
                   catch_polys10 <- st_sf(geometry=st_union(catch_polys[lengths(st_intersects(catch_polys, st_union( rvsim$sim_terr10_bufpts   ))) ==0]),year=10)
                   rvsim$catch_polys <- rbind( rvsim$catch_polys, catch_polys10) } 
-            extra_HabLayers_c <- st_crop(extra_HabLayers_c , st_buffer(sim_bbox,-50))   ## here can be topo issue with original shp cant use intersection()?.
+            extra_HabLayers_c <- st_crop(extra_HabLayers_l , st_buffer(sim_bbox,-50))   ## here can be topo issue with original shp cant use intersection()?.
                   cat("dam building capacity layer\n")
                freqdam <-  extra_HabLayers_c$geometry[extra_HabLayers_c$layer == "frequent to pervasive" ]
          if(length(freq) >0) { extra_HabLayers_c$geometry[extra_HabLayers_c$layer == "frequent to pervasive" ] <- st_union(st_line_sample( st_cast(freqdam, "LINESTRING"),  density = 1/150, type = "regular") ) }
@@ -1370,116 +1344,9 @@ observeEvent(rvsim$trig,{   # once simulations completed
  }
  removeUI('#text', immediate = T)
   }, ignoreInit=TRUE)
-##jan26 was not init=T
+##jan26 was not init=T# need foolproofing here ensure all layers of extra_HabLayers_c$layer are there even if NULL for final extent
  
-####################################################################################################### FUN: mapsim_output_function - generate final map  
-mapsim_output_function <-function(){
-  cat("hi")
-         # nb value of new_ext_sim comes from <<
-         new_ext_sim <- rvsim_out$new_ext_sim 
-         ggplot() + 
-                  geom_sf(data=st_crop(region_box, new_ext_sim), col=NA, fill="white")+
-                  geom_sf(data=st_crop(region_box, new_ext_sim), col=NA, fill="steelblue", alpha=.9)+
-                  geom_sf(data=st_crop(UKbound, new_ext_sim) ,  fill="beige", col="steelblue", alpha=.9, size=1)   +
-                  geom_sf(data= st_crop(rivlines, new_ext_sim), col=alpha("skyblue",.7),fill=alpha("steelblue",.8), size=2)+ 
-                  geom_sf(data=st_crop(rivlines, new_ext_sim), col=alpha("steelblue",.9),fill=alpha("skyblue",.7), size=1)+ 
-                  geom_sf(data=st_crop(HabMapLayers [ HabMapLayers$layer %in% c("suitable","dispersal") ,], new_ext_sim) , mapping = aes(fill= layer  ),col=NA , alpha=.3, size=0 )+
-                  geom_sf(data=st_crop(HabMapLayers [HabMapLayers$layer %in% c("suitable" ) ,], new_ext_sim) , mapping = aes(  col= layer), fill=NA   )+
-                  geom_sf(data=st_crop(BackLayers [ BackLayers$layer %in% c("b road","a road","minor road","primary road") ,] , new_ext_sim), mapping = aes( col= layer), size=1,alpha=.8 )+
-                  geom_sf(data=st_crop(BackLayers [ BackLayers$layer %in% c("b road","a road","minor road","primary road") ,], new_ext_sim), col= "yellow", size=.8,alpha=.8 )+
-                  geom_sf(data=st_crop(BackLayers [ BackLayers$layer %in% c("railway line")  ,], new_ext_sim), linetype="dotted", col= 1, size=3  )+
-                  geom_sf(data=st_crop(BackPoints , new_ext_sim) , aes(col=layer,  shape=layer), size=3, stroke=1 )+
-                  geom_sf_text(data=st_crop(BackText [  BackText$layer2 != "Railway Station",], new_ext_sim), aes(label=label, col=layer2  )  )+
-                  geom_sf_label(data=st_crop(BackText [ BackText$layer2  == "Railway Station",], new_ext_sim), aes(label=label),fill=alpha(1,.4), col="beige")+
-                                        
-                 scale_fill_manual(values=c(   "suitable"=alpha("turquoise3",.3), "dispersal"=alpha("olivedrab4",.3), "unsuitable"=alpha("honeydew3",.4), "river"="steelblue",
-                                               "a road"="brown", "b road"="orange", "admin line"="black",
-                                               "TV or radio mast or tower"="blue","Wind powered generator"="blue","foreshor region"=alpha("lightseagreen",.7),
-                                               "marsh"="green","woodland region"=alpha("olivedrab4",.7),"urban region"="purple","rivers line"=alpha("skyblue",.8),"lakes region"=alpha("steelblue",.9),
-                                               "minor road"=alpha("grey",.6),"primary road"="red","railway line"="black" ,
-                                               "Loch"=0, "Forest"=0,  "named places"=0,  "road names"=0, "local altitude"="purple"   ))+
-                 
-                 scale_colour_manual(values=c( "suitable"="turquoise3", "dispersal"="olivedrab4", "unsuitable"=0, "river"="steelblue","a road"="brown", "b road"="orange", "admin line"="black",
-                                               "TV or radio mast or tower"="blue","Wind powered generator"="blue","foreshor region"=0,
-                                               "marsh"="green","woodland region"=0,"urban region"=0,"rivers line"=alpha("skyblue",.8),"lakes region"= 0,
-                                               "minor road"=alpha("grey",.6),"primary road"="red","railway line"="black",
-                                               "Loch"="steelblue4","Forest"="green4",  "named places"=1, "road names"="grey30", "local altitude"="purple"   )  )+  
-                
-                 scale_shape_manual(values=c( "TV or radio mast or tower"=13,"Wind powered generator"=8,"foreshor region"=0,
-                                              "marsh"=8,"woodland region"=0,"urban region"=0,"rivers line"=0,"lakes region"= 0,
-                                              "minor road"=0,"primary road"=0,"railway line"=0,
-                                              "Loch"=0,"Forest"=0,  "named places"=0, "road names"=0, "local altitude"=17)  )+  
-              
-                 scale_size_manual(values=c( "a road"=2, "b road"=1.5, "admin line"=1,"admin seed"=5,
-                                             "TV or radio mast or tower"=3,"Wind powered generator"=3,"foreshor region"=0,
-                                             "marsh"=3,"woodland region"=0,"urban region"=0,"rivers line"=2,"lakes region"= 0,
-                                             "minor road"=1,"primary road"=1.5,"railway line"=2,
-                                             "Loch"=4.5,"Forest"=4, "named places"=4, "road names"=3, "local altitude"=3)  )+  
-                  annotation_scale(location = "bl")+
-                  coord_sf(crs = mercproj, expand=F) +
-                  theme(legend.position = "none", axis.title.x = element_blank(), 
-                  axis.title.y = element_blank(),   
-                  panel.border = element_rect(fill =NA) ,
-                  plot.background = element_rect(fill = "transparent", colour = NA)) 
-}
-
-
-mapsim0_function <-function(){
-    ext_region_box <- rvsim$ext_region_box
-    ext_UKbound  <- rvsim$ext_UKbound
-    sim_bbox     <- rvsim_out$new_ext_sim  
-    rivers       <- rvsim$riv   
-    LocalHab     <- rvsim$LocalHab
-    LocalBackLayers <- rvsim$LocalBackLayers
-    LocalBackPoints <- rvsim$LocalBackPoints
-    LocalBackText <- rvsim$LocalBackText
-     
-       ggplot() + 
-              geom_sf(data =  ext_region_box, col=NA, fill="white")+
-              geom_sf(data =  ext_region_box, col=NA, fill="steelblue", alpha=.9)+
-              geom_sf(data =  ext_UKbound ,  fill="beige", col="steelblue", alpha=.9, size=1)   +
-              geom_sf(data=   rivers, col=alpha("skyblue",.7),fill=alpha("steelblue",.8), size=2)+ 
-              geom_sf(data=   rivers, col=alpha("steelblue",.9),fill=alpha("skyblue",.7), size=1)+ 
-              geom_sf(data= LocalHab [LocalHab$layer %in% c("suitable","dispersal") ,] , mapping = aes(fill= layer  ),col=NA , alpha=.3, size=0 )+
-              geom_sf(data= LocalHab [LocalHab$layer %in% c("suitable" ) ,] , mapping = aes(  col= layer), fill=NA   )+
-                                      geom_sf(data=LocalBackLayers [LocalBackLayers$layer %in% c("b road","a road","minor road","primary road") ,] , mapping = aes( col= layer), size=1,alpha=.8 )+
-                                      geom_sf(data=LocalBackLayers [LocalBackLayers$layer %in% c("b road","a road","minor road","primary road") ,], col= "yellow", size=.8,alpha=.8 )+
-                                      geom_sf(data=LocalBackLayers [LocalBackLayers$layer %in% c("railway line")  ,], linetype="dotted", col= 1, size=3  )+
-                                      geom_sf(data=LocalBackPoints  , aes(col=layer,  shape=layer), size=3, stroke=1 )+
-                                      geom_sf_text(data=LocalBackText [ LocalBackText$layer2 != "Railway Station",], aes(label=label, col=layer2  )  )+
-                                      geom_sf_label(data=LocalBackText [LocalBackText$layer2  == "Railway Station",], aes(label=label),fill=alpha(1,.4), col="beige")+
-                                      
-              scale_fill_manual(values=c(  "suitable"=alpha("turquoise3",.3), "dispersal"=alpha("olivedrab4",.3), "unsuitable"=alpha("honeydew3",.4), "river"="steelblue",
-                                            "a road"="brown", "b road"="orange", "admin line"="black",
-                                            "TV or radio mast or tower"="blue","Wind powered generator"="blue","foreshor region"=alpha("lightseagreen",.7),
-                                            "marsh"="green","woodland region"=alpha("olivedrab4",.7),"urban region"="purple","rivers line"=alpha("skyblue",.8),"lakes region"=alpha("steelblue",.9),
-                                            "minor road"=alpha("grey",.6),"primary road"="red","railway line"="black" ,
-                                            "Loch"=0, "Forest"=0,  "named places"=0,  "road names"=0, "local altitude"="purple"   ))+
-             
-               scale_colour_manual(values=c(   "suitable"="turquoise3", "dispersal"="olivedrab4", "unsuitable"=0, "river"="steelblue","a road"="brown", "b road"="orange", "admin line"="black",
-                                               "TV or radio mast or tower"="blue","Wind powered generator"="blue","foreshor region"=0,
-                                               "marsh"="green","woodland region"=0,"urban region"=0,"rivers line"=alpha("skyblue",.8),"lakes region"= 0,
-                                               "minor road"=alpha("grey",.6),"primary road"="red","railway line"="black",
-                                               "Loch"="steelblue4","Forest"="green4",  "named places"=1, "road names"="grey30", "local altitude"="purple"   )  )+  
-            
-               scale_shape_manual(values=c( "TV or radio mast or tower"=13,"Wind powered generator"=8,"foreshor region"=0,
-                                            "marsh"=8,"woodland region"=0,"urban region"=0,"rivers line"=0,"lakes region"= 0,
-                                            "minor road"=0,"primary road"=0,"railway line"=0,
-                                            "Loch"=0,"Forest"=0,  "named places"=0, "road names"=0, "local altitude"=17)  )+  
-          
-               scale_size_manual(values=c("a road"=2, "b road"=1.5, "admin line"=1,"admin seed"=5,
-                                          "TV or radio mast or tower"=3,"Wind powered generator"=3,"foreshor region"=0,
-                                          "marsh"=3,"woodland region"=0,"urban region"=0,"rivers line"=2,"lakes region"= 0,
-                                          "minor road"=1,"primary road"=1.5,"railway line"=2,
-                                          "Loch"=4.5,"Forest"=4, "named places"=4, "road names"=3, "local altitude"=3)  )+  
-              annotation_scale(location = "bl")+
-              coord_sf(crs = mercproj, expand=F) +
-              theme(legend.position = "none", axis.title.x = element_blank(), 
-              axis.title.y = element_blank(),   
-              panel.border = element_rect(fill =NA) ,
-              plot.background = element_rect(fill = "transparent", colour = NA)) 
-}     
-
+ 
 
 
 
@@ -1499,12 +1366,9 @@ observeEvent( rvplot1$mapsim_init,{
 ### catch intcatch and dm cap layers  to plot
 observeEvent( show_extra_lay_d()  ,{
   req(!is.null(rvsim$extra_HabLayers) )
-  print("add layers:")
-  print(show_extra_lay_d())
-
-    show_lays <- rvsim$extra_HabLayers[rvsim$extra_HabLayers$layer %in% show_extra_lay_d(),]
-    print(nrow(show_lays))   
-    catch_polys <- NULL
+  cat(paste0("add layers: ", show_extra_lay_d()))
+     show_lays <- rvsim$extra_HabLayers[rvsim$extra_HabLayers$layer %in% show_extra_lay_d(),]
+     catch_polys <- NULL
     if ("water body intercatchments" %in% show_extra_lay_d()) { catch_polys <- rvsim$catch_polys } 
     
            rvsim$mapsim0_finext  <-  rvsim$mapsim0_finext0   + new_scale_colour() +  new_scale("shape") + 
@@ -1515,7 +1379,7 @@ observeEvent( show_extra_lay_d()  ,{
                                       geom_sf(data= catch_polys[catch_polys$year == 0,] ,  col=NA, fill=alpha("brown",.4) )+
                                       coord_sf(crs = mercproj, expand=F) + annotation_scale(location = "bl")+
                                       theme(axis.text=element_blank())
-             print("show y0 ")  
+             cat("\ny0 map  -  ")  
  
     
  chull_y3_all <- chull_y5_all <- chull_y10_all <- NULL   
@@ -1539,7 +1403,7 @@ observeEvent( show_extra_lay_d()  ,{
                                       geom_sf(data=chull_y10_all, fill=alpha("magenta",.1),col=1)+
                                       coord_sf(crs = mercproj, expand=F) + annotation_scale(location = "bl")+
                                       theme(axis.text=element_blank())
-         print("show y10") }  
+             cat("y10 map  -  ")   }  
        
            if( "Show convex hull" %in% input$show_chull_y3 ) {         
              chull_y3_all <- rvsim$chull_y3_all[[min(which(c("1 to 3 runs","3 to 5 runs","5 to 10 runs"  , "10 to 15 runs") %in%  plot_probability_range_y3_d()), na.rm=TRUE) ]] }
@@ -1560,7 +1424,7 @@ observeEvent( show_extra_lay_d()  ,{
                                       geom_sf(data=chull_y3_all, fill=alpha("magenta",.1),col=1)+
                                       coord_sf(crs = mercproj, expand=F) + annotation_scale(location = "bl")+
                                       theme(axis.text=element_blank())
-       print("show y3")
+             cat("y3 map  -  ")  
               
                 
            if( "Show convex hull" %in% input$show_chull_y5 ) {
@@ -1582,8 +1446,8 @@ observeEvent( show_extra_lay_d()  ,{
                                       geom_sf(data=chull_y5_all, fill=alpha("magenta",.1),col=1)+
                                       coord_sf(crs = mercproj, expand=F) + annotation_scale(location = "bl")+
                                       theme(axis.text=element_blank())
-          print("show y5 - add extra layers with ")
-          print(plot_probability_range_y5_d())
+             cat("y5 map  -  ")  
+            cat(paste0("show ",plot_probability_range_y5_d(),"\n"))
              
   }, ignoreInit=TRUE, ignoreNULL=FALSE)
   
@@ -1635,8 +1499,7 @@ observeEvent(plot_probability_range_y5_d(),{
                                       geom_sf(data=chull_y5_all, fill=alpha("magenta",.1),col=1)+
                                       coord_sf(crs = mercproj, expand=F) + annotation_scale(location = "bl")+
                                       theme(axis.text=element_blank())
-          cat("update map y5  -  ")
-         print(show_extra_lay_d())
+          cat(paste0("update map y5 with ", show_extra_lay_d()))
 },ignoreInit=TRUE, ignoreNULL=FALSE)  
 
 
@@ -1859,9 +1722,7 @@ observeEvent(toListen()  ,{
    if( input$Nsites ==  "each_pt_on_map") {     p2x <- plot_data2$x[1]
                                                 p2y <- plot_data2$y[1] 
      }
-    if( input$Nsites ==   "single_release_pt"  ) { p2x <- rep(plot_data2$x[1],as.numeric(as.character(plot_data$Nfams)))
-                                                   p2y <- rep(plot_data2$y[1],as.numeric(as.character(plot_data$Nfams))) 
-     }
+  
     if( input$Nsites == "random_location_across"){ # sample suitable hab layer 
           p2coords <- st_coordinates( st_sample(  x = st_erase(ldat$LocalHab[ldat$LocalHab$layer == "suitable",],ldat$nonsel),   ## sample only within selected catchments
                                                   type = "SSI",
@@ -1880,8 +1741,7 @@ observeEvent(toListen()  ,{
  isolate({
       val$clickx2 =    c( p2x,val$clickx2) [1:as.numeric(as.character(plot_data$Nfams))] 
       val$clicky2 =    c( p2y, val$clicky2 )  [1:as.numeric(as.character(plot_data$Nfams))]  
-      # print("isolate vals")
-             }) 
+              }) 
  }, ignoreInit=TRUE) 
    
 
@@ -1927,9 +1787,7 @@ observe ({
   if ( is.null(savedat$tablepts)  | is.na(sum( savedat$tablepts$Y)) | is.na(sum(savedat$tablepts$X))) { shinyjs::disable("start_reruninit")} else { shinyjs::enable("start_reruninit") }  })
 observe ({
   if ( length(rvsim$ter.start)==0 ) { shinyjs::disable("start_sim_growth")} else { shinyjs::enable("start_sim_growth") }  })  
-observe ({
-#  print("how many pts ready?")
-#  print(savedat$ptstp_nro)
+observe ({ 
   if (  savedat$ptstp_nro==0 ) { shinyjs::disable("start_sim")} else  {shinyjs::enable("start_sim") }   })  
 observe ({
   if( is.null(plot_data$x)) {shinyjs::disable("pick_extent")} else {shinyjs::enable("pick_extent") }  })
@@ -2014,13 +1872,7 @@ output$mapzoom  <-  renderPlot({  if(is.null(plot_data$mapzoom_final)) {return()
 
 ############################################################################################ was useful when storing consecutive bbox centroids
 ############################################################################################ formatting of table when switching to single point 
-observeEvent(input$Nsites,{
-   if( input$Nsites ==  "single_release_pt") {if(length(which(!is.na(savedat$tablepts0$x)))>0 ) { 
-                                         savedat$tablepts$X <- savedat$tablepts0$x[!is.na(savedat$tablepts0$x)][1]
-                                         savedat$tablepts$Y <- savedat$tablepts0$y[!is.na(savedat$tablepts0$y)][1] } else { savedat$tablepts <- NULL} }
-}, ignoreInit = FALSE)
-
-
+ 
 
 output$table_saved_extents <- renderTable({if(is.null(savedat$table)) return(   )
   savedat$table },align = 'c', striped=T , spacing = 'xs',  hover = TRUE, width="100%",colnames = TRUE , rownames = FALSE   )
@@ -2119,7 +1971,7 @@ observeEvent(triggers$new_extent,{       # not on init
          cat( "habitat  -  ")
      ldat$LocalHab <-  st_intersection(HabMapLayers,ldat$ext_area) 
          cat( "land  -  ")
-     ldat$ext_UKbound <- st_crop(UKbound , ldat$ext_area)  
+     ldat$ext_coastline <- st_crop(coastline , ldat$ext_area)  
      update_busy_bar(50)
      ldat$ext_region_box <- st_crop(region_box,ldat$ext_area) 
      update_busy_bar(70) 
@@ -2142,7 +1994,7 @@ observeEvent(triggers$new_extent,{       # not on init
      
      
          cat( "\ngenerate map for candidate release site")
-     plot_data$mapzoom0 <- mapzoom_function(ext_region_box=ldat$ext_region_box,ext_UKbound=ldat$ext_UKbound,ext_area_sel=ldat$ext_area_sel,rivers=ldat$riv,nonsel=ldat$nonsel)  + 
+     plot_data$mapzoom0 <- mapzoom_function(ext_region_box=ldat$ext_region_box,ext_coastline=ldat$ext_coastline,ext_area_sel=ldat$ext_area_sel,rivers=ldat$riv,nonsel=ldat$nonsel)  + 
                                             geom_sf(data=ldat$nonsel,col=NA,fill=alpha("grey",.7))+ coord_sf(crs = mercproj, expand=F)
  update_busy_bar(100)
      plot_data$mapzoomb <- plot_data$mapzoomc <- plot_data$mapzoom <- plot_data$mapzoom0
@@ -2194,8 +2046,7 @@ observeEvent (input$selected_OS_all,  {
 observeEvent(input$update_mapzoom_hab,{      # when clicked, crop OS map otherwise just hab is ready
     LocalHab <-  ldat$LocalHab
     reac_lay$selected_OS <- c(input$selected_OS1, input$selected_OS2)
-    print("plot mapzoom layers:")
-    #print(reac_lay$selected_OS)
+    cat("display layers on site map  -  ") 
     selected_OS <- reac_lay$selected_OS
     
     show_railstations <- NULL ## to display labels only when lines are displayed

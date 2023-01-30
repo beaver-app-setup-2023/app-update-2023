@@ -35,7 +35,7 @@ cat("function: map_output_startingterr\n")
                             new_ext0 <-  st_as_sfc(  st_bbox (st_buffer(mapped_features,3000) ) )  
                             st_crs(new_ext0) <- mercproj 
                             rvplot1$LocalHab <- st_crop(HabMapLayers,new_ext0) 
-                            rvplot1$ext_UKbound  <- st_crop(UKbound , new_ext0)  
+                            rvplot1$ext_coastline  <- st_crop(coastline , new_ext0)  
                             rvplot1$ext_region_box <-  st_crop(region_box,new_ext0) 
                             rvplot1$riv  <- st_union( st_crop( rivlines,new_ext0) ) 
                             cat("GIS layers cropped  -  ") 
@@ -49,7 +49,7 @@ cat("function: map_output_startingterr\n")
                         mapsim_init0 <-  ggplot( ) + 
                                             geom_sf(data =  rvplot1$ext_region_box, col=NA, fill="white")+
                                             geom_sf(data =  rvplot1$ext_region_box, col=NA, fill="steelblue", alpha=.9)+
-                                            geom_sf(data =  rvplot1$ext_UKbound ,  fill="beige", col="steelblue", alpha=.9, size=1)   +
+                                            geom_sf(data =  rvplot1$ext_coastline ,  fill="beige", col="steelblue", alpha=.9, size=1)   +
                                             geom_sf(data= rvplot1$LocalHab [rvplot1$LocalHab$layer %in% c("suitable","dispersal"),] ,  mapping = aes(fill= layer , col= layer), alpha=.4, size=0 ) + 
                                             geom_sf(data=   rvplot1$riv , col=alpha("skyblue",.7),fill=alpha("steelblue",.8), size=2)+ 
                                             geom_sf(data=   rvplot1$riv , col=alpha("steelblue",.9),fill=alpha("skyblue",.7), size=1)+  

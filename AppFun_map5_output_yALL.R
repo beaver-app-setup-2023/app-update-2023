@@ -1,7 +1,7 @@
-
+## once mapsim_output0 generated, add sim layers
 ## may have to optimise to not run code for years other than that selected
 ## OR - al changes on output maps at once?
-cat("map_output_yALL ALL YEARS  -  ")
+cat("map_output_yALL() for now ALL YEARS  -  ")
  
 
  
@@ -40,33 +40,12 @@ FUN_map_output_yALL <-function(start_terr, sim_terr3,sim_terr, sim_terr10, lay_r
               sim_terr_bufpts   <- sim_terr
               sim_terr10_bufpts <- sim_terr10
      
-         
- #     if(is.null( mapsim_output0)) {  cat("mapsim fun")
-#        mapsim_output0 <- mapsim_output_function() } # is this required? - redraw with new extent inc all terrs
-      #chull_y3_all <- chull_y5_all <- chull_y10_all <- NULL 
-         
-            
-  # if(length(plot_probability_range_y5_d_)==0)   {sim_terr$Nruns  <- NA  } else {
-  #       sim_terr <-  sim_terr[ sim_terr$Nruns %in%  plot_probability_range_y5_d_,]  
-    #     if( "Show convex hull" %in% show_chull_y5 ) {
-     #       chull_y5_all <- chull_y5_all[[min(which(c("1 to 3 runs","3 to 5 runs","5 to 10 runs"  , "10 to 15 runs") %in%  plot_probability_range_y5_d_), na.rm=TRUE) ]]} }
-       
-               
           
- #  if(length(plot_probability_range_y3_d_)==0)   {sim_terr3$Nruns <- NA } else {
- #       sim_terr3 <-  sim_terr3[ sim_terr3$Nruns %in%  plot_probability_range_y3_d_,]
-    #    if( "Show convex hull" %in% show_chull_y3 ) {
-     #      chull_y3_all <- chull_y3_all[[min(which(c("1 to 3 runs","3 to 5 runs","5 to 10 runs"  , "10 to 15 runs") %in%  plot_probability_range_y3_d_), na.rm=TRUE) ]]}  }
-    
                    
               
    mapsim10  <- NULL
    if( mgmt.years == 10){
-   #    if(length(plot_probability_range_y10_d_)==0)   {sim_terr10$Nruns <- NA } else {
-       #  sim_terr10 <-  sim_terr10[ sim_terr10$Nruns %in%  plot_probability_range_y10_d_,]
-        #   if( "Show convex hull" %in% show_chull_y10 ) {
-            #  chull_y10_all <- chull_y10_all[[min(which(c("1 to 3 runs","3 to 5 runs","5 to 10 runs"  , "10 to 15 runs") %in%  plot_probability_range_y10_d_), na.rm=TRUE) ]]}  }
-               mapsim10  <-mapsim_output0  +
+          mapsim10  <-mapsim_output0  +
                                        new_scale_fill() + new_scale_color()+  
                                        scale_fill_manual("",values=c("1 to 3 runs"="white","3 to 5 runs"="yellow" ,"5 to 10 runs"="orange","10 to 15 runs"="red"),
                                        breaks=c("1 to 3 runs","3 to 5 runs","5 to 10 runs"  , "10 to 15 runs"),drop = FALSE ) +

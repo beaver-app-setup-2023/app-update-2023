@@ -4,20 +4,20 @@ cat("mapzoom_function()  -  ")
   
 
 #  ext_region_box=ldat$ext_region_box
-#  ext_UKbound=ldat$ext_UKbound
+#  ext_coastline=ldat$ext_coastline
 #  ext_area_sel=ldat$ext_area_sel
 #  rivers=ldat$riv 
   
   
   ############################################################################################ FUN - mapzoom_function - generate map for main tab candidate release site 
-mapzoom_function <-function(ext_region_box, ext_UKbound, ext_area_sel, rivers,nonsel ){
+mapzoom_function <-function(ext_region_box, ext_coastline, ext_area_sel, rivers,nonsel ){
   cat("\nfunction: mapzoom_function\n")
        
     
  ggplot() + 
           geom_sf(data =  ext_region_box, col=NA, fill="white")+
           geom_sf(data =  ext_region_box, col=NA, fill="steelblue", alpha=.9)+
-          geom_sf(data =  ext_UKbound ,  fill="beige", col="steelblue", alpha=.9, size=1)   +
+          geom_sf(data =  ext_coastline ,  fill="beige", col="steelblue", alpha=.9, size=1)   +
           geom_sf(data=   rivers, col=alpha("skyblue",.7),fill=alpha("steelblue",.8), size=2)+ 
           geom_sf(data=   rivers, col=alpha("steelblue",.9),fill=alpha("skyblue",.7), size=1)+ 
           geom_sf(data=   nonsel,col=NA,fill=alpha("grey",.7))+
