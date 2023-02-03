@@ -14,9 +14,9 @@ wander2 <- function(id, hab, origin) {
   
   data.frame(index=hab_ring, hab=hab[hab_ring]) %>% 
     filter(hab==2) %>% 
-    sample_frac() %>% 
-    pull(index) ->
-    path
+    slice_sample(prop = 1) %>% 
+    pull(index) -> path
+  
   return(path)
 }
 
