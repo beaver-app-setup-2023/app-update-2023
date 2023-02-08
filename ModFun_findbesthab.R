@@ -21,7 +21,7 @@ find.best.hab <- function(choices.in, hab, origin=NA) {
     ch <- c(ch, psample(which(!is.na(hab [choices.in])), s))
     ##print(ch)
   } else {
-    dist <- sqrt ( (col(hab)[origin] - col(hab)[choices.in])^2 +  (row(hab)[origin] - row(hab)[choices.in])^2 )
+    dist <- sqrt((col(hab)[origin] - col(hab)[choices.in])^2 + (row(hab)[origin] - row(hab)[choices.in])^2 )
     dist[is.na(hab[choices.in])] <- -999
     dist.ord <- order(dist, decreasing=TRUE)    
      #print("ch2")

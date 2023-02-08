@@ -3,7 +3,7 @@ cat("expand.territory2()  -  ")
 expand.territory2 <- function(ter, id, hab) {
  # ter <- values(ter) ##changed
   current <- which(terra::values(ter) == id)
-  adj <- terra::adjacent(rast(ter), current, directions=8, pairs=FALSE)
+  adj <- terra::adjacent(terra::rast(ter), current, directions=8, pairs=FALSE)
   adj <-  adj[which(ter[adj] == 0 & hab[adj] == 2)] #exclude occupied territory and null/dispersal habitat
   if(length(adj) == 0) {return(ter)} 
   
