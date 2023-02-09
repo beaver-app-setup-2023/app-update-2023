@@ -2,25 +2,22 @@ cat("dispersal2()  -  ")
 
 
 
-#raster(ter)? - nope
 dispersal2 <- function(id, fam, ter, hab, famsize.max, move.max, hab.tot.quality, routes) {
    bvr <- max(routes$bvr)+1
   
   #made a change here, indicated by lines marked ###. Seems to work
-  startf <- adjacent.id(ter, cells=which(values(ter)==id), id=id, directions=8)
+  startf <- adjacent.id(ter, cells=which(terra::values(ter)==id), id=id, directions=8)
   startf.natal <- startf
-    test1 <- find.best.hab(startf, hab) 
    
   start.here <- psample(find.best.hab(startf, hab ), 1)  ###
-     # wander around
-  # path <- wander(id, hab=hab, origin=start.here, steps=160)  ######################################## wait wtf
+  # wander around
   path <- wander2(id, hab=hab, origin=start.here)  ### Added Mar 2020
  
   if(length(path)==0) path <- start.here           ### Added Mar 2020
   
   #now start looking around destination for territory. 
   start.here <- path[length(path)]
-  startf <- adjacent.id(ter, cells=which(values(ter)==id), id=id, directions=8)
+  startf <- adjacent.id(ter, cells=which(terra::values(ter)==id), id=id, directions=8)
   startf.natal <- startf
   
   if(length(start.here)==0) {disp.fail <<- disp.fail + 1; 
@@ -38,10 +35,6 @@ dispersal2 <- function(id, fam, ter, hab, famsize.max, move.max, hab.tot.quality
   moves   <- 0
   while (success == 0 & moves < move.max) {
      if(length(startf)==0) {success <- -1; next;}
-    #where am I?
-    #start.here <- psample(startf, 1)   ###
-    #start.here.natal <- start.here #keep track of this: if fail, return to natal territory
-    #startf <- startf[-which(startf==start.here)] ###
     ter.here <- ter[start.here]
     hab.here <- hab[start.here]
     if(verbose) cat ("\tbeaver from", id, ": starting at", start.here, ", hab here =", hab.here, "\n")
@@ -57,8 +50,8 @@ dispersal2 <- function(id, fam, ter, hab, famsize.max, move.max, hab.tot.quality
       if (length(start.here)>0) routes.loc <- rbind(routes.loc, data.frame(bvr=bvr, cell=start.here))
     } else if (hab.here==1) {
        #choose again from here
-       startf <- adjacent(raster(hab), cells=start.here, directions=8, pairs=FALSE)
-      startf <- startf[-which(values(ter)[startf]==id)] #exclude cells of same family ## values
+      startf <- terra::adjacent(terra::rast(hab), cells=start.here, directions=8, pairs=FALSE)
+      startf <- startf[-which(terra::values(ter)[startf]==id)] #exclude cells of same family ## values
       if(length(startf) == 0) {
         if (verbose) cat("\tbeaver from", id, ": can't settle at", start.here, ", returning to natal\n")
         startf <- startf.natal
@@ -81,7 +74,6 @@ dispersal2 <- function(id, fam, ter, hab, famsize.max, move.max, hab.tot.quality
       if (verbose) cat("\tbeaver from", id, ": discovered territory", ter.here, "\n")
       famsize <- fam$num.m[ter.here] + fam$num.f[ter.here] 
       if (famsize < famsize.max & famsize > 0) {
-        #if(runif(1) < 0.5) {fam$num.m[ter.here] <- fam$num.m[ter.here] +1} else {fam$num.f[ter.here] <- fam$num.f[ter.here] +1}
         if(fam$num.m[ter.here] < fam$num.f[ter.here]) {fam$num.m[ter.here] <- fam$num.m[ter.here] +1} else {fam$num.f[ter.here] <- fam$num.f[ter.here] +1}
         success <- 1
         if (verbose) cat("\tbeaver from", id, ": joined territory", ter.here, "\n")
