@@ -5,7 +5,7 @@ cat("recruitment2()  -  ")
 recruitment2 <- function(id, young, fam, famsize.max) {
   famsize <- fam$num.m[id] + fam$num.f[id]
   young.born <- young[id]
-  #cat(young.born, "youngsters, ", famsize, "currently in family\n")
+ 
   if (famsize==famsize.max | young.born==0) return (c(young.born,0,0))
   
   new.m <- new.f <- 0
@@ -24,7 +24,6 @@ recruitment2 <- function(id, young, fam, famsize.max) {
     surplus <- young.born
   }  
   
-   #cat("\t", new.m + new.f, "recruited, ", surplus, "disperse\n")
   
   return(c(surplus, new.m, new.f))
 }

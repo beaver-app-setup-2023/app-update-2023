@@ -7,7 +7,6 @@ options("rgdal_show_exportToProj4_warnings"="none")
 library(zip)
 library(here)
 library(spatstat)
-# library(shiny)
 library(Rfast)
 library(shinyjs) 
 library(ggplot2)
@@ -36,8 +35,8 @@ library(ggrepel)
 library(rgee)
 
 
-rasterOptions(maxmemory = 1e+09)
-rasterOptions(tmpdir="temp_files")   
+terra::terraOptions(memmax = 1e+09)
+terra::terraOptions(tempdir="temp_files")   
  
 
-source (here::here("initLoadHelpers.R"))  
+source(here::here("initLoadHelpers.R"))  
