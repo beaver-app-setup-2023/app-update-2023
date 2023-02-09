@@ -9,7 +9,7 @@ find.best.hab <- function(choices.in, hab, origin=NA) {
     # include the four cells furthest away from the supplied origin
   if(is.na(origin)) {
     
-    s <- ifelse(sum(!is.na(hab  [choices.in]))<3,sum(!is.na(hab [choices.in])),3)#now hab$layer?
+    s <- ifelse(sum(!is.na(hab[choices.in]))<3,sum(!is.na(hab [choices.in])),3)#now hab$layer?
     ch <- c(ch, psample(which(!is.na(hab [choices.in])), s))
     
   } else {
