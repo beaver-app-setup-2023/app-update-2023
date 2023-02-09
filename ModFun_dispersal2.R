@@ -8,7 +8,6 @@ dispersal2 <- function(id, fam, ter, hab, famsize.max, move.max, hab.tot.quality
   #made a change here, indicated by lines marked ###. Seems to work
   startf <- adjacent.id(ter, cells=which(terra::values(ter)==id), id=id, directions=8)
   startf.natal <- startf
-  test1 <- find.best.hab(startf, hab) 
    
   start.here <- psample(find.best.hab(startf, hab ), 1)  ###
   # wander around
