@@ -18,8 +18,8 @@ cat("\nfunction: sim_pop\n")
               
             routes <- data.frame(bvr=0, cell=0)
            
-              if( mgmt.years==5) {updval <- 16}
-              if( mgmt.years==10){updval <- 8}
+              if(mgmt.years==5) {updval <- 16}
+              if(mgmt.years==10){updval <- 8}
             
             yearcount <-0
             for (year in 1: mgmt.years) {
@@ -32,12 +32,12 @@ cat("\nfunction: sim_pop\n")
                                  update_busy_bar(updval2) 
                                  hab2 <- matrix(hab@data[,1], byrow=FALSE, ncol=hab@grid@cells.dim["x"])
                                 
-                                #cat("subadult survival  -  ")
+                               
                                 cat(".")
                                 last.years.young <- sapply(families$young, survival, mort=mort.sub)
                                 deaths.sub <- sum(families$young) - sum(last.years.young)
                                 
-                               # cat ("production of young  -  ")
+              
                                 cat(".")
                                 this.years.young <- sapply(families$fam.id, breeding2, fam=families, litter.size=litter.size, breed.prob=breed.prob)
                                 births <- this.years.young
@@ -45,24 +45,24 @@ cat("\nfunction: sim_pop\n")
                                 deaths.juv <- sum(births)-sum(this.years.young)
                                 families$young <- this.years.young
                               
-                              # cat ("adult survival  -  ")
-                                cat(".")
+                     
+                               cat(".")
                                mal.surv <- sapply(families$num.m, survival, mort=mort.adt)
                                fem.surv <- sapply(families$num.f, survival, mort=mort.adt)
                                deaths.adt <- sum( (families$num.m - mal.surv) + (families$num.f - fem.surv) )
                                families$num.m <- mal.surv
                                families$num.f <- fem.surv
                               
-                              # cat ("recruitment  -  ")
-                                cat(".")
+                    
+                               cat(".")
                                recruit <- t(sapply(families$fam.id, recruitment2, young=last.years.young, fam=families, famsize.max=famsize.max))
                                sub.disp <- recruit[,1]
                                families$num.m <- families$num.m + recruit[,2]
                                families$num.f <- families$num.f + recruit[,3]
-                              # cat (" dispersing  -  ")
-                                cat(".")
+                            
+                               cat(".")
                         
-                               disp <- unlist(apply(data.frame(fam.id=1:length(sub.disp), sub.disp), MARGIN=1,function(x) rep(x[1], times=x[2])))
+                               disp <- tidyr::uncount(data.frame(fam.id=1:length(sub.disp), sub.disp), sub.disp)$fam.id 
                                
                               if(length(disp)>0) {
                                  disp <- data.frame(fam.id=disp, ind.id=1:length(disp)) 
@@ -75,12 +75,12 @@ cat("\nfunction: sim_pop\n")
                       }
                       
                        
-                      # cat ("territorial release\n")
+                     
                                 cat(".")
                         
                             out$num.fam[out$year==year] <- NROW(subset(families, num.m+num.f>0))
                             out$num.adt[out$year==year] <- sum(families$num.m, families$num.f)  
-                            out$propfem[out$year==year] <- sum(families$num.f)#/out$num.adt[out$year==year]
+                            out$propfem[out$year==year] <- sum(families$num.f)
                             out$deaths.adt[out$year==year] <- deaths.adt
                             out$juv.born[out$year==year] <- sum(births)
                             out$num.juv[out$year==year] <- sum(births) - deaths.juv
@@ -115,26 +115,26 @@ cat("\nfunction: sim_pop\n")
     
      ## pdm 5yrs
      cat("year 5  -  ")
-     fam5 <- fam.all2[fam.all2$year ==  5  ,] %>%   group_by(rep.id,fam.id) %>% summarise(num.adt=num.m +  num.f)
+     fam5 <- fam.all2[fam.all2$year ==  5  ,] %>%   group_by(rep.id,fam.id) %>% summarise(num.adt=num.m + num.f) %>% ungroup()
      fam5 <- fam5[fam5$num.adt>0,]
      ter.all2$count <- 1 
     
      ter_occ5<- NULL
      for (repnum in 1:mgmt.reps){
-        occfam <- unique(fam5$fam.id[fam5$rep.id == repnum ])
-        ter_occ5 <- rbind(ter_occ5,ter.all2[ter.all2$year ==  5 & ter.all2$rep.id ==repnum & ter.all2$ter %in% occfam,])
+        occfam <- unique(fam5$fam.id[fam5$rep.id == repnum])
+        ter_occ5 <- rbind(ter_occ5,ter.all2[ter.all2$year == 5 & ter.all2$rep.id == repnum & ter.all2$ter %in% occfam,])
        }
     
-     ter_occ5 <- ter_occ5 %>% group_by(cell) %>% summarise(dens=sum(count))
+     ter_occ5 <- ter_occ5 %>% group_by(cell) %>% summarise(dens=sum(count)) %>% ungroup()
        
-          rter2 <- raster(extent(hab)) # empty raster
-          res(rter2 ) <-  100 
-          crs(rter2) <- mercproj
-          values(rter2)[ter_occ5$cell] <-  ter_occ5$dens 
+          rter2 <- terra::rast(terra::ext(hab))
+          terra::res(rter2) <-  100 
+          terra::crs(rter2) <- mercproj
+          terra::values(rter2)[ter_occ5$cell] <-  ter_occ5$dens 
         
     update_busy_bar(30) 
-    fm2 <- as(rasterToPolygons(rter2, dissolve = F),"sf") # was T -to id the families but not relevant when several reps
-       names(fm2)[1] <- "dens" 
+    fm2 <- sf::st_as_sf(terra::as.polygons(rter2, dissolve = F)) # was T -to id the families but not relevant when several reps
+    names(fm2)[1] <- "dens" 
     fm2$Nruns <- "1 to 3 runs" 
     fm2$Nruns[fm2$dens>2] <- "3 to 5 runs"  
     fm2$Nruns[fm2$dens>4] <- "5 to 10 runs"
@@ -145,26 +145,26 @@ cat("\nfunction: sim_pop\n")
     ## pdm 3yrs
      
      cat("year 3  -  ") 
-     fam3 <- fam.all2[fam.all2$year ==  3  ,] %>%   group_by(rep.id,fam.id) %>% summarise(num.adt=num.m +  num.f)
+     fam3 <- fam.all2[fam.all2$year ==  3  ,] %>% group_by(rep.id,fam.id) %>% summarise(num.adt=num.m +  num.f) %>% ungroup()
      fam3 <- fam3[fam3$num.adt>0,]
      ter.all2$count <- 1 
     
      ter_occ3<- NULL
-    for ( repnum in 1:mgmt.reps){
-        occfam <- unique(fam3$fam.id[fam3$rep.id == repnum ])
-        ter_occ3 <- rbind(ter_occ3,ter.all2[ter.all2$year ==  3 & ter.all2$rep.id ==repnum & ter.all2$ter %in% occfam,])
+    for (repnum in 1:mgmt.reps){
+        occfam <- unique(fam3$fam.id[fam3$rep.id == repnum])
+        ter_occ3 <- rbind(ter_occ3,ter.all2[ter.all2$year == 3 & ter.all2$rep.id == repnum & ter.all2$ter %in% occfam,])
     }
     update_busy_bar(50)
-    ter_occ3 <- ter_occ3 %>% group_by(cell) %>% summarise(dens=sum(count))
+    ter_occ3 <- ter_occ3 %>% group_by(cell) %>% summarise(dens=sum(count)) %>% ungroup()
       
-            rter3 <- raster(extent(hab)) # empty raster
-         res(rter3 ) <- 100 
-         crs(rter3) <- mercproj
-        values(rter3)[ter_occ3$cell] <-  ter_occ3$dens 
+        rter3 <- terra::rast(terra::ext(hab))
+        terra::res(rter3 ) <- 100 
+        terra::crs(rter3) <- mercproj
+        terra::values(rter3)[ter_occ3$cell] <- ter_occ3$dens 
          
      
-    fm3 <- as(rasterToPolygons(rter3, dissolve = F),"sf") # was T -to id the families but not relevant when several reps
-     names(fm3)[1] <- "dens" 
+    fm3 <- sf::st_as_sf(terra::as.polygons(rter3, dissolve = F)) # was T -to id the families but not relevant when several reps
+    names(fm3)[1] <- "dens" 
     fm3$Nruns <- "1 to 3 runs" 
     fm3$Nruns[fm3$dens>2] <- "3 to 5 runs"  
     fm3$Nruns[fm3$dens>4] <- "5 to 10 runs"
@@ -176,25 +176,26 @@ cat("\nfunction: sim_pop\n")
     
      cat("year 10  -  ")
      update_busy_bar(70) 
-     fam10 <- fam.all2[fam.all2$year == 10  ,] %>%   group_by(rep.id,fam.id) %>% summarise(num.adt=num.m +  num.f)
+     fam10 <- fam.all2[fam.all2$year == 10  ,] %>% group_by(rep.id,fam.id) %>% summarise(num.adt=num.m + num.f) %>% ungroup()
      fam10 <- fam10[fam10$num.adt>0,]
      ter.all2$count <- 1 
     
      ter_occ10<- NULL
-    for ( repnum in 1:mgmt.reps){
-        occfam <- unique(fam10$fam.id[fam10$rep.id == repnum ])
-        ter_occ10 <- rbind(ter_occ10,ter.all2[ter.all2$year ==  10 & ter.all2$rep.id ==repnum & ter.all2$ter %in% occfam,])
+    for (repnum in 1:mgmt.reps){
+        occfam <- unique(fam10$fam.id[fam10$rep.id == repnum])
+        ter_occ10 <- rbind(ter_occ10,ter.all2[ter.all2$year == 10 & ter.all2$rep.id == repnum & ter.all2$ter %in% occfam,])
     }
     
-    ter_occ10 <- ter_occ10 %>% group_by(cell) %>% summarise(dens=sum(count))
-          rter10 <- raster(extent(hab)) # empty raster
-          res(rter10 ) <-  100 
-          crs(rter10) <- mercproj
-          values(rter10)[ter_occ10$cell] <-  ter_occ10$dens 
+    ter_occ10 <- ter_occ10 %>% group_by(cell) %>% summarise(dens=sum(count)) %>% ungroup()
+    
+          rter10 <- terra::rast(terra::ext(hab))
+          terra::res(rter10 ) <-  100 
+          terra::crs(rter10) <- mercproj
+          terra::values(rter10)[ter_occ10$cell] <- ter_occ10$dens 
        
      
-    fm10 <- as(rasterToPolygons(rter10, dissolve = F),"sf")  
-       names(fm10)[1] <- "dens" 
+    fm10 <- sf::st_as_sf(terra::as.polygons(rter10, dissolve = F))  
+    names(fm10)[1] <- "dens" 
     fm10$Nruns <- "1 to 3 runs" 
     fm10$Nruns[fm10$dens>2] <- "3 to 5 runs"  
     fm10$Nruns[fm10$dens>4] <- "5 to 10 runs"
@@ -204,7 +205,7 @@ cat("\nfunction: sim_pop\n")
      
     fm2$layer <- "probabilities over all reps"
     fm3$layer <- "probabilities over all reps"
-     update_busy_bar(80)
+    update_busy_bar(80)
      
      
      cat("stats  -  ")
@@ -213,14 +214,15 @@ cat("\nfunction: sim_pop\n")
         out.all$meanfamsize  <-  out.all$num.adt /out$num.fam 
             
     out1 <- out.all  %>% group_by(year) %>% 
-                        summarise(meanfam=round(mean(num.fam),1),minfam=min(num.fam),maxfam=max(num.fam),
+                         summarise(meanfam=round(mean(num.fam),1),minfam=min(num.fam),maxfam=max(num.fam),
                                   meanadt=round(mean(num.adt),1),minadt=min(num.adt),maxadt=max(num.adt),
                                   meanpropfem=round(mean(propfem),1),minpropfem=round(min(propfem),1),maxpropfem=round(max(propfem),1),
                                   meanmeanfamsize=round(mean(meanfamsize),1),minmeanfamsize=min(meanfamsize),maxmeanfamsize=max(meanfamsize),
                                   meanjb=round(mean(juv.born),1),minjb=min(juv.born),maxjb=max(juv.born),
                                   meansub=round(mean(num.sub),1),minsub=min(num.sub),maxsub=max(num.sub),
                                   meandisp=round(mean(sub.disp),1),mindisp=min(sub.disp),maxdisp=max(sub.disp),
-                                  meandispf=round(mean(sub.fail),1),mindispf=min(sub.fail),maxdispf=max(sub.fail))
+                                  meandispf=round(mean(sub.fail),1),mindispf=min(sub.fail),maxdispf=max(sub.fail)) %>% 
+                         ungroup()
      
        cat("summary table\n")
     
@@ -229,7 +231,7 @@ cat("\nfunction: sim_pop\n")
                                      "Number of families"= paste0(meanfam,"(",minfam,"-",maxfam,")"),  
                                      "Number of adults"= paste0(meanadt,"(",minadt,"-",maxadt,")"), 
                                      "Proportion of females"= paste0(meanpropfem,"(",minpropfem,"-",maxpropfem,")"),
-                                      "Number of juveniles born"= paste0(meanjb,"(",minjb,"-",maxjb,")"), 
+                                     "Number of juveniles born"= paste0(meanjb,"(",minjb,"-",maxjb,")"), 
                                      "Number of sub-adults"= paste0(meansub,"(",minsub,"-",maxsub,")"), 
                                      "Number dispersing"= paste0(meandisp,"(",mindisp,"-",maxdisp,")"), 
                                      "Number failing dispersal"= paste0(meandispf,"(",mindispf,"-",maxdispf,")") )) 
@@ -250,10 +252,11 @@ cat("\nfunction: sim_pop\n")
                                   medfam=round(median(num.fam),1) ,                              
                                   prob_fam2plus = paste0(round(length(which(num.fam>threshold_Nfams))/mgmt.reps*100,0),"%"),
                                   prob_famdble = paste0(round(length(which(num.fam>threshold_Nfamsdle))/mgmt.reps*100,0),"%"), 
-                                   meanadt=paste0(round(mean(num.adt),1) ,"(", min(num.adt),"-", max(num.adt),")"), 
+                                  meanadt=paste0(round(mean(num.adt),1) ,"(", min(num.adt),"-", max(num.adt),")"), 
                                   medadt=round(median(num.adt),1) ,
                                   prob_adt4lus = paste0(round(length(which(num.adt>threshold_Ninds))/mgmt.reps*100,0),"%") ,
-                                  prob_adtdble = paste0(round(length(which(num.adt>threshold_Nindsdble))/mgmt.reps*100,0),"%") )
+                                  prob_adtdble = paste0(round(length(which(num.adt>threshold_Nindsdble))/mgmt.reps*100,0),"%")) %>% 
+                          ungroup()
                      
     colnames(out2) <- c("year after release", "number of families\naverage (min-max)", "number of families\nmedian",paste0("predicted probability of\nat least ",out1$maxfam[1]," families"),
                         paste0("predicted probability of number of territories having at least doubled"),

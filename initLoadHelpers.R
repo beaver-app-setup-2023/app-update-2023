@@ -7,12 +7,16 @@ st_erase = function(x, y) st_difference(x, st_union(st_combine(y))) # erase all 
 
 
 
-matrix.to.SpatPolys <- function (coords, proj=CRS(as.character(NA))) {
-  poly <- Polygon(coords)
-  polys <- lapply(list(poly), function(x) {Polygons(list(x), ID="foo")}) #works
-  for(i in 1:length(polys)) polys[[i]]@ID <- as.character(i)
-  spolys <- SpatialPolygons(polys, proj4string=proj)
-  return(spolys)
+matrix.to.sfPolys <- function (coords, proj=CRS(as.character(NA))) {
+  
+  if(!is.matrix(coords)) stop("## Error: in matrix.to.sfPolys coords needs to be a matrix")
+  
+  window.f <- data.frame(coords) %>% 
+     st_as_sf(coords = c("X1", "X2"), crs = proj) %>% 
+     summarise(geometry = st_combine(geometry)) %>% 
+     st_cast("POLYGON") 
+  
+  return(window.f)
 }
 
 
