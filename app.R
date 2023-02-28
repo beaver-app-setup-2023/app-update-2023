@@ -773,7 +773,7 @@ server <-function(input, output, session ) {
      update_busy_bar(10)    
  
      source_IBMcode      <- unlist(list.files(here(),pattern="Mod"))
-     source_App_Functions  <- unlist(list.files(here(),pattern="AppFun_"))
+     source_App_Functions  <- unlist(list.files(here(),pattern="AppFun_", ignore.case = TRUE))
      source_App_initVals <- unlist(list.files(here(),pattern="initLoad_val")) 
      
   cat("\n\nload init reactives\n")  
