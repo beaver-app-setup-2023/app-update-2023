@@ -1,7 +1,7 @@
 cat("sim_pop()  -  ")
 
 ################################################################################################################ FUN: simpop_function - simulate pop growth - 
-simpop_function<-function(hab, fam.start , ter.start, mgmt.years, mgmt.reps ){
+simpop_function<-function(hab, fam.start, ter.start, mgmt.years, mgmt.reps ){
 cat("\nfunction: sim_pop\n")
       
   for(rep in 1:mgmt.reps) {  
@@ -30,7 +30,7 @@ cat("\nfunction: sim_pop\n")
                                  disp.fail <<- deaths.adt <<- deaths.sub <<- deaths.juv <<- births <<- disp.succ <<- 0
                                  updval2 <- 10+yearcount*updval
                                  update_busy_bar(updval2) 
-                                 hab2 <- matrix(hab@data[,1], byrow=FALSE, ncol=hab@grid@cells.dim["x"])
+                                 hab2 <- hab
                                 
                                
                                 cat(".")
@@ -113,9 +113,10 @@ cat("\nfunction: sim_pop\n")
     update_busy_bar(10)
    
     
+    
      ## pdm 5yrs
      cat("year 5  -  ")
-     fam5 <- fam.all2[fam.all2$year ==  5  ,] %>%   group_by(rep.id,fam.id) %>% summarise(num.adt=num.m + num.f) %>% ungroup()
+     fam5 <- fam.all2[fam.all2$year ==  5,] %>% group_by(rep.id,fam.id) %>% summarise(num.adt=num.m + num.f) %>% ungroup()
      fam5 <- fam5[fam5$num.adt>0,]
      ter.all2$count <- 1 
     
@@ -127,10 +128,10 @@ cat("\nfunction: sim_pop\n")
     
      ter_occ5 <- ter_occ5 %>% group_by(cell) %>% summarise(dens=sum(count)) %>% ungroup()
        
-          rter2 <- terra::rast(terra::ext(hab))
-          terra::res(rter2) <-  100 
-          terra::crs(rter2) <- mercproj
-          terra::values(rter2)[ter_occ5$cell] <-  ter_occ5$dens 
+     rter2 <- terra::rast(terra::ext(rvsim$map.crop))
+     terra::res(rter2) <-  100 
+     terra::crs(rter2) <- mercproj
+     terra::values(rter2)[ter_occ5$cell] <-  ter_occ5$dens 
         
     update_busy_bar(30) 
     fm2 <- sf::st_as_sf(terra::as.polygons(rter2, dissolve = F)) # was T -to id the families but not relevant when several reps
@@ -157,10 +158,10 @@ cat("\nfunction: sim_pop\n")
     update_busy_bar(50)
     ter_occ3 <- ter_occ3 %>% group_by(cell) %>% summarise(dens=sum(count)) %>% ungroup()
       
-        rter3 <- terra::rast(terra::ext(hab))
-        terra::res(rter3 ) <- 100 
-        terra::crs(rter3) <- mercproj
-        terra::values(rter3)[ter_occ3$cell] <- ter_occ3$dens 
+    rter3 <- terra::rast(terra::ext(rvsim$map.crop))
+    terra::res(rter3) <-  100 
+    terra::crs(rter3) <- mercproj
+    terra::values(rter3)[ter_occ3$cell] <-  ter_occ3$dens 
          
      
     fm3 <- sf::st_as_sf(terra::as.polygons(rter3, dissolve = F)) # was T -to id the families but not relevant when several reps
@@ -188,10 +189,10 @@ cat("\nfunction: sim_pop\n")
     
     ter_occ10 <- ter_occ10 %>% group_by(cell) %>% summarise(dens=sum(count)) %>% ungroup()
     
-          rter10 <- terra::rast(terra::ext(hab))
-          terra::res(rter10 ) <-  100 
-          terra::crs(rter10) <- mercproj
-          terra::values(rter10)[ter_occ10$cell] <- ter_occ10$dens 
+    rter10 <- terra::rast(terra::ext(rvsim$map.crop))
+    terra::res(rter10) <-  100 
+    terra::crs(rter10) <- mercproj
+    terra::values(rter10)[ter_occ10$cell] <-  ter_occ10$dens    
        
      
     fm10 <- sf::st_as_sf(terra::as.polygons(rter10, dissolve = F))  

@@ -773,7 +773,7 @@ server <-function(input, output, session ) {
      update_busy_bar(10)    
  
      source_IBMcode      <- unlist(list.files(here(),pattern="Mod"))
-     source_App_Functions  <- unlist(list.files(here(),pattern="AppFun_"))
+     source_App_Functions  <- unlist(list.files(here(),pattern="AppFun_", ignore.case = TRUE))
      source_App_initVals <- unlist(list.files(here(),pattern="initLoad_val")) 
      
   cat("\n\nload init reactives\n")  
@@ -884,6 +884,7 @@ observeEvent(rvsim$lay_release_pts_trig,{
    rvsim$Nfams_w2Young <- return_list_start[[14]]
    rvsim$Nads <- return_list_start[[15]]   
    rvsim$Nyoungs <- return_list_start[[16]] 
+   rvsim$map.crop <- return_list_start[[17]] 
    ## lines between old/new locs  (not used in the end, have to remove!)
     new_pts <- rvsim$lay_release_pts_new      
     old_pts <- rvsim$lay_release_pts[rvsim$lay_release_pts$family %in% new_pts$family,] # jan check here
@@ -1464,11 +1465,11 @@ output$mapsim0_finext  <- renderPlot({ if(is.null(rvsim$mapsim3) ){ return() } e
   # run on init to update with checked boxes but after maps are created a first time
 observeEvent(input$sim_objective,{ 
      req(!is.null(rvplot1$mapsim_init0)) 
-    req(!is.null(rvsim$startpop))
-        
+     req(!is.null(rvsim$start_pop))
+   
      cat(paste("update with ",input$sim_objective ,"  -  "))
  
-   rvplot1$mapsim_init <- FUN_map_output_startingterr()[[1]] # jan shouldnt rerun whole code to add a layer here - correct
+   rvplot1$mapsim_init <- FUN_map_output_startingterr(mapsim_init0=rvplot1$mapsim_init0, start_pop=rvsim$start_pop,lay_release_pts=rvsim$lay_release_pts,lay_release_pts_new=rvsim$lay_release_pts_new, rvplot1=rvplot1, sim_objective= input$sim_objective, Nfams_init_d_=Nfams_init_d())[[1]] # jan shouldnt rerun whole code to add a layer here - correct
 },ignoreInit=TRUE, ignoreNULL=FALSE) 
 
  

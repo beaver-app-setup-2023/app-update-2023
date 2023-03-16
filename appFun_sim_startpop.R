@@ -8,192 +8,177 @@ cat("startpop()  -  ")
 
 startpop_function <-function(pts, habmap_raster, Nsites, demog, Nyoungs_perfam) { 
   cat("\nfunction: startpop\n")  
-         pts  <-  st_transform(pts,mercproj)
-         update_busy_bar(5)      
-         temp_bbox0 <-  st_bbox(st_as_sf(st_buffer(   st_union(pts)   , 5000)   ))    ## 3km buffer around init point location to stat with? is that enough
-         st_crs(temp_bbox0) <- mercproj 
+        pts  <-  st_transform(pts,mercproj)
+        update_busy_bar(5)      
+        temp_bbox0 <-  st_bbox(st_as_sf(st_buffer(st_union(pts), 5000)))    ## 3km buffer around init point location to stat with? is that enough
+        st_crs(temp_bbox0) <- mercproj 
         
-        window <- cbind(c(temp_bbox0$xmin, temp_bbox0$xmax ),c(temp_bbox0$ymin, temp_bbox0$ymax )) 
-        window <- cbind(window[c(1,1,2,2,1),1], window[c(1,2,2,1,1),2])
-        window <- matrix.to.SpatPolys(window, proj= CRS(mercproj)) #hab@proj4string)
         update_busy_bar(10) 
-        mapr.mask <-  mask(habmap_raster, window) # was mask
+        new.bbox <- terra::ext(c(temp_bbox0$xmin, temp_bbox0$xmax, temp_bbox0$ymin, temp_bbox0$ymax))
+        mapr.crop <- terra::crop(terra::rast(map.r), new.bbox)
         
-        #mapr.mask[is.na(mapr.mask)] <- 0       #oc6 - longer to process
-         removeUI('#text', immediate = T)
-         insertUI('#placeholder', ui = tags$p(id = 'text', paste('( extracting habitat quality values for the extent )')), immediate = T)
+        removeUI('#text', immediate = T)
+        insertUI('#placeholder', ui = tags$p(id = 'text', paste('( extracting habitat quality values for the extent )')), immediate = T)
          
         update_busy_bar(15) 
-        temp_bbox0 <- as(as(extent(alignExtent(temp_bbox0, mapr.mask, snap='near')), "SpatialPolygons"), "sf")
+        temp_bbox0 <- sf::st_as_sf(terra::as.polygons(terra::ext(terra::align(new.bbox, mapr.crop, snap='near'))))
         st_crs(temp_bbox0) <- mercproj
+        
         cat("crop layers to new temporary bbox  -")
         update_busy_bar(20) 
-        hab2 <- as(mapr.mask, "SpatialPointsDataFrame") 
-        #print(summary(hab2))
-        hab2 <- hab2[hab2@data$layer>0,] 
-        #   hab2 <- hab2[!is.na(hab2@data$layer),]                # leave in or not??  
-        gridded(hab2) <- TRUE
-        hab <- as(hab2, "SpatialGridDataFrame") # just grids
+        hab2 <- sf::st_as_sf(terra::as.points(mapr.crop))
+        hab2 <- hab2[hab2$layer>0,] 
+        
+        hab <- terra::as.matrix(mapr.crop, wide = TRUE)
         update_busy_bar(40)    
         
-        matNrows <- hab@grid@cells.dim[1] 
-        matNcols <- hab@grid@cells.dim[2] 
+        matNrows <- nrow(hab)
+        matNcols <- ncol(hab) 
         
         ## create territories
-        ter <- ter0 <- matrix (0, ncol=matNcols , nrow=matNrows, byrow=F)
-        rter <- raster(extent(hab)) # empty raster
-        res(rter ) <- c(100,100)
-        crs(rter)  <- mercproj
-        cellnum    <- matrix (seq(1:length(ter)),  ncol=matNcols , nrow=matNrows, byrow=F)  
+        ter <- ter0 <- matrix(0, ncol=matNcols , nrow=matNrows, byrow=F)
+        rter <- terra::rast(terra::ext(mapr.crop)) # empty raster
+        terra::res(rter) <- c(100,100)
+        terra::crs(rter) <- mercproj
+        cellnum <- matrix(seq(1:length(ter)), ncol=matNcols, nrow=matNrows, byrow=F)  
            
         ## release pts 
-        tay <- SpatialPointsDataFrame(coords=cbind(x=as.numeric(st_coordinates(pts)[,1]),y=as.numeric(st_coordinates(pts)[,2])), data=data.frame(family=seq(1:nrow(pts) ), num.m =1,num.f = 1))
-        crs(tay)  <-  hab@proj4string
-        tay$index <- getGridIndex(tay@coords, map@grid)# getGridIndex(tay@coords, hab@grid)
-        tay0      <- tay
+        tay <- sf::st_as_sf(data.frame(x = st_coordinates(pts)[,1], y = st_coordinates(pts)[,2], family = seq(1:nrow(pts)), num.m = 1,num.f = 1), coords = c("x", "y"), 
+                            crs = mercproj)
         
        removeUI('#text', immediate = T)
        insertUI('#placeholder', ui = tags$p(id = 'text', paste('( validating release point coordinates )')), immediate = T)
             
-        
-           taysf <- as(tay,"sf")
-           st_crs(taysf)   <- mercproj
            ## distance between pts
            too_close <- NULL
-           if( Nsites ==   "single_release_pt") {
+           if(Nsites == "single_release_pt") {
              too_close <- tay$family 
            } else {
-            if( Nsites !=  "random_location_across") {
+            if(Nsites != "random_location_across") {
               for (id in 1:nrow(tay)){
-              too_close <- unique(c(too_close,which(as.numeric(st_distance(taysf)[id,])<300 & as.numeric(st_distance(taysf)[id,])>0) ) )} } }#t00 was 800m
+              too_close <- base::unique(c(too_close,which(as.numeric(st_distance(tay)[id,])<300 & as.numeric(st_distance(tay)[id,])>0)))}}}#t00 was 800m
            
            if(!is.null(too_close)){
              cat(paste0(too_close," too close") )}
           
-        suitable  <- st_union(st_as_sf(hab2[hab2$layer ==2,]))
-        dispersal <- st_union(st_as_sf(hab2[hab2$layer ==1,]))
+        suitable  <- st_union(hab2[hab2$layer == 2,])
+        dispersal <- st_union(hab2[hab2$layer == 1,])
         pts_options <- st_union(dispersal, suitable) 
         st_crs(suitable) <- st_crs(dispersal) <- mercproj
         
-        ptronews <-    NULL
-        to_suit <- which( mapr.mask[tay] <2)
+        ptronews <- NULL
+        to_suit <- which(terra::extract(mapr.crop, tay)$layer < 2)
         
         
         reloc_text <- reloc_text1 <- reloc_text2 <- NULL
-        if(length(too_close)>1) { reloc_text1 <-  paste0("Families ",  paste0(as.character(too_close), collapse=" & ")   ," were initially located <1km apart.")}
-        if(length(to_suit)>1)   { reloc_text2 <- paste0("Families ",paste0(as.character(to_suit), collapse=" & ")," were not initially located in suitable habitat.")}
-        if(length(to_suit)==1)   { reloc_text2 <- paste0("Family ", to_suit ," was not initially located in suitable habitat.")}
-         if(!is.null(reloc_text1)){ 
-        cat(   paste0(reloc_text1,"\n",reloc_text2,"\n") ) }
+        if(length(too_close)>1) {reloc_text1 <-  paste0("Families ",  paste0(as.character(too_close), collapse=" & ")   ," were initially located <1km apart.")}
+        if(length(to_suit)>1)   {reloc_text2 <- paste0("Families ",paste0(as.character(to_suit), collapse=" & ")," were not initially located in suitable habitat.")}
+        if(length(to_suit)==1)   {reloc_text2 <- paste0("Family ", to_suit ," was not initially located in suitable habitat.")}
+        if(!is.null(reloc_text1)){ 
+        cat(paste0(reloc_text1,"\n",reloc_text2,"\n") ) }
         
         
         ### relocate pts
-       if( Nsites !=  "random_location_across") {
+       if(Nsites !=  "random_location_across") {
                   reloc_vec <- seq(-800,800,200)
                   prev_moved <- NULL
-                  while( any(mapr.mask[tay] <2) | length(too_close)>1){
+                  while(any(terra::extract(mapr.crop, tay)$layer <2, na.rm = TRUE) | length(too_close)>1){
                              print("moving release pt")
-                             print( too_close) 
+                             print(too_close) 
                              print(length(too_close))
-                             relocdf <- data.frame(family = tay$family ,movex =0,movey=0) 
+                             relocdf <- data.frame(family = tay$family, movex = 0, movey = 0) 
                                
                               if(length(too_close)>1){
                                   print("move further") 
                                   too_close1 <- NULL
-                                   if(length(to_suit)>0 ){ # move in priority the points in suit hab - will only apply for the first round
+                                   if(length(to_suit)>0){ # move in priority the points in suit hab - will only apply for the first round
                                           print("to_suit1")         
-                                          #print(to_suit)
                                           too_close1 <- too_close[too_close %in% to_suit]
-                                          to_suit  <- to_suit[!to_suit %in% too_close1 ] 
+                                          to_suit  <- to_suit[!to_suit %in% too_close1] 
                                           print("too_close1")
-                                          #print(too_close1)
-                                          print("to_suit2")         
-                                          #print(to_suit)
+                                          print("to_suit2")
                                           }  
-                                  if(!is.null( too_close1) ) {print("too close is to suit") # shoud do only first time
-                                                    too_close <- too_close1 }   else { # move pts previously moved in priority
-                                                                                                              if( !is.null(prev_moved) ){
-                                                                                                                    too_close  <- too_close[too_close %in% prev_moved]    }  # move pt previously moved again
-                                                                                                              if(  is.null(prev_moved) ){
-                                                                                                                    too_close <- too_close[sample(length(too_close),length(too_close)-1)] } } # random pick one of two pts too near
+                                  if(!is.null(too_close1)) {print("too close is to suit") # shoud do only first time
+                                                    too_close <- too_close1}   else { # move pts previously moved in priority
+                                        if(!is.null(prev_moved)){
+                                              too_close  <- too_close[too_close %in% prev_moved]}  # move pt previously moved again
+                                        if(is.null(prev_moved)){
+                                              too_close <- too_close[sample(length(too_close),length(too_close)-1)]}} # random pick one of two pts too near
+                            
                                 
                                 
-                                
-                                    relocdf$movex[too_close] <-  sample(reloc_vec,length(too_close) )
-                                    relocdf$movey[too_close] <-  sample(reloc_vec ,length(too_close) )
+                                    relocdf$movex[too_close] <-  sample(reloc_vec, length(too_close))
+                                    relocdf$movey[too_close] <-  sample(reloc_vec, length(too_close))
                               }
                               
                              if(length(to_suit)>0 ){
                                         print("move to suit")
-                                        relocdf$movex[to_suit] <-  sample(reloc_vec ,length(to_suit) )
-                                        relocdf$movey[to_suit] <-  sample(reloc_vec ,length(to_suit) )
+                                        relocdf$movex[to_suit] <-  sample(reloc_vec, length(to_suit))
+                                        relocdf$movey[to_suit] <-  sample(reloc_vec, length(to_suit))
                               }
                             
-                             ros <-  relocdf$family[ which( relocdf$movex!=0 | relocdf$movey !=0) ]
+                             ros <-  relocdf$family[which(relocdf$movex != 0 | relocdf$movey != 0)]
                              prev_moved <- ros
                              upd <-0
                              upd_pt <-  100/length(ros) # tot Npts
                             
-                             for(ro in  ros){
+                             for(ro in ros){
                                        ptronews <- NULL
-                                       ptro0 <- st_as_sf(tay[tay$family == ro,])
-                                       ptro <-   st_as_sf(st_sfc(  st_point(c( st_coordinates(ptro0)[,1]+relocdf$movex[ro], st_coordinates(ptro0)[,2]+relocdf$movey[ro])), crs=mercproj ) ,ptro0 %>% st_drop_geometry() )
+                                       ptro0 <- tay[tay$family == ro,]
+                                       ptro <-   st_as_sf(st_sfc( st_point(c(st_coordinates(ptro0)[,1]+relocdf$movex[ro], st_coordinates(ptro0)[,2]+relocdf$movey[ro])), crs=mercproj), ptro0 %>% 
+                                                            st_drop_geometry())
                                        st_crs(ptro) <- st_crs(ptro0) <- mercproj 
                                        print("ptro") 
                                        rad  <- 300
                                        add_radius <- 200 
-                                       ptronew <- st_intersection(st_buffer(ptro,rad )  , st_cast(st_as_sf(suitable),"POINT"))
+                                       ptronew <- st_intersection(st_buffer(ptro,rad), st_cast(st_as_sf(suitable),"POINT"))
                                          
                                         nro=nrow(ptronew)
                                         while(nro==0){ # i.e. didnt find an intersection
                                                rad  <- rad + add_radius
                                                print("larger radius required")
                                                        if(rad  <  1500){
-                                                            ptronew <- st_intersection(st_buffer(ptro,rad)  , st_cast(st_as_sf(suitable),"POINT"))
+                                                            ptronew <- st_intersection(st_buffer(ptro,rad), st_cast(st_as_sf(suitable),"POINT"))
                                                             nro <- nrow(ptronew)
                                                             print("ptronew loop")
                                                          }
                                                          
-                                                       if( rad > 1500){ 
+                                                       if(rad > 1500){ 
                                                              print("cant find hab")
                                                              rvsim$reloc_text_init <- ("Selected point location too far from enough suitable habitat - review coordinates.")
                                                              ptronew <- ptro 
                                                              nro <- 1} 
                                            }
                                        
-                                       ptronew <- ptronew [sample(seq(1,nrow(ptronew)),1),] # pick one point in suit hab
+                                       ptronew <- ptronew[sample(seq(1,nrow(ptronew)),1),] # pick one point in suit hab
                                        print("ptronew")
-                                       #print(ptronew) 
                                        ptronews <- rbind(ptronew,ptronews) 
                                       
-                                       tay_reloc <- SpatialPointsDataFrame(coords=cbind(x=as.numeric( st_coordinates(ptronews)[,1]),y=as.numeric( st_coordinates(ptronews)[,2])), data=ptronews%>% st_drop_geometry())
-                                       tay_reloc$index  <- getGridIndex(tay_reloc@coords, hab@grid)
-                                       crs(tay_reloc) <-  crs(tay) <-  mercproj
+                                       tay_reloc <- sf::st_as_sf(cbind(data.frame(x = st_coordinates(ptronews)[,1], y = st_coordinates(ptronews)[,2]), ptronews %>% st_drop_geometry()), coords = c("x", "y"))
+                                       st_crscrs(tay_reloc) <-  mercproj
                                          
                                        print("new tay")
                                        tay <- tay[!tay$family %in% tay_reloc$family,] 
                                        tay <- rbind(tay,tay_reloc)
-                                    
-                                       taysf <- as(tay,"sf")
-                                       st_crs(taysf)   <- mercproj
-                                     
+                                  
+                                       taysf <- tay
+                                       
                                        too_close <- NULL
                                        for (id in 1:nrow(tay)){
-                                         too_close <- unique(c(too_close,which(as.numeric(st_distance(taysf)[id,])<800 & as.numeric(st_distance(taysf)[id,])>0) ) )}
+                                         too_close <- base::unique(c(too_close, which(as.numeric(st_distance(taysf)[id,])<800 & as.numeric(st_distance(taysf)[id,])>0)))}
                                        
                                        print("too_close?")
-                                       print(too_close )
-                                       to_suit <- which( mapr.mask[tay] <2)
+                                       print(too_close)
+                                       to_suit <- which(terra::extract(mapr.crop, tay)$layer <2)
                           } ## here
                   } 
         } 
-        tay@data$index <-  getGridIndex(tay@coords, hab@grid)
         cat(paste0(nrow(tay)," starting points -  "))  
             
          
           ## move pts to new locations here 
-          num.fam <- nrow(tay@data)
-          families <- data.frame(fam.id=tay$family, num.m=tay$num.m, num.f=tay$num.f, young=0,   qual=0, stringsAsFactors=FALSE)
+          num.fam <- nrow(tay)
+          families <- data.frame(fam.id=tay$family, num.m=tay$num.m, num.f=tay$num.f, young=0, qual=0, stringsAsFactors=FALSE)
           
           removeUI('#text', immediate = T)
           insertUI('#placeholder', ui = tags$p(id = 'text', paste('( simulating initial settlement )')), immediate = T)
@@ -204,105 +189,98 @@ startpop_function <-function(pts, habmap_raster, Nsites, demog, Nyoungs_perfam) 
           
           families$young[1:num_with] <- sample(seq(Nyoungs_perfam[1], Nyoungs_perfam[2]) ,num_with, replace=TRUE)}
         
-         if(demog =="all families") {families$young <- sample(seq(Nyoungs_perfam[1], Nyoungs_perfam[2]) ,nrow(families), replace=TRUE)}
+         if(demog =="all families") {families$young <- sample(seq(Nyoungs_perfam[1], Nyoungs_perfam[2]), nrow(families), replace=TRUE)}
           
-         start   <-   tay$index 
          update_busy_bar(50)
           
-          
-        adjacent(raster(ter0), start, directions=8 ) %>% ### initial - locate points within suit of disp
-          data.frame() %>% 
-          mutate(id=sapply(from,function(x) which(x == start)),
-                 hab=as.matrix(hab, ncol=matNcols , nrow=matNrows, byrow=FALSE) [to]) %>% 
-        #  filter(hab >0) %>% #sep20
-          distinct(to, .keep_all=TRUE) ->
-          start_df
-        #print("start_df")
-        #print(start_df)
-        update_busy_bar(60)
-        ## note the adjacent()function omits NA cells? if NA in map inds can jump over..
-        ## sample one start point per family within disp or suit, and distinct
-        sd1 <- start_df %>% group_by(id  ) %>% summarise(maxhab=max(hab, na.rm=TRUE))#cell= to[ hab==max(hab)])
-        #print("sd1 -1")
-        #print(sd1)
-        sd1 <- merge(sd1, start_df)
-        #print("sd1 -2")
-        #print(sd1)
-        sd1 <- sd1[sd1$hab == sd1$maxhab,]
-        #print("sd1 -3")
-        #print(sd1) #sep20
-        startcells <- sd1[!is.na(sd1$id),] %>% group_by(id ) %>% summarise(cell= unique(to)[sample(1:length(unique(to)),1)] )
-          
+         start.coords <- st_coordinates(tay)
+         start <- terra::cellFromXY(mapr.crop, start.coords)
          
-        startid_suboptimal <- which(as.matrix(hab, ncol=matNcols , nrow=matNrows, byrow=FALSE) [startcells$cell]<2)
-         
+         terra::adjacent(terra::rast(ter0), start, directions=8) %>% ### initial - locate points within suit of disp UPDATE
+           data.frame() %>% 
+           rownames_to_column(var = "from") %>% 
+           mutate(from = as.numeric(from) + 1) %>% 
+           pivot_longer(X1:X8, names_to = "trash", values_to = "to") %>% 
+           dplyr::select(-trash) %>% 
+           mutate(id=sapply(from, function(x) which(x == start)),
+                  habc = terra::rast(hab)[to]) %>% 
+           distinct(to, .keep_all=TRUE) -> start_df
         
-        #ter[startcells$cell] <- startcells$id
-        ter[unique(start_df$from)] <- unique(start_df$id) # start from relocated point?
+        update_busy_bar(60)
+        
+        ## note the adjacent()function omits NA cells? if NA in map inds can jump over.
+        ## sample one start point per family within disp or suit, and distinct
+        sd1 <- start_df %>% group_by(id) %>% summarise(maxhab=max(habc, na.rm=TRUE)) %>% ungroup()
+        sd1 <- base::merge(sd1, start_df)
+        sd1 <- sd1[sd1$hab == sd1$maxhab,]
+        startcells <- sd1[!is.na(sd1$id),] %>% group_by(id) %>% summarise(cell= unique(to)[sample(1:length(unique(to)),1)]) %>% ungroup()
+          
+         
+        startid_suboptimal <- which(terra::rast(hab)[startcells$cell]<2)
+         
+
+        ter.rast <- terra::rast(ter)
+        terra::values(ter.rast)[base::unique(start_df$from)] <- base::unique(start_df$id) # start from relocated point?
+        ter <- as.matrix(ter.rast, wide = TRUE)  # start from relocated point?
          
         
         ## store in families and ter
-        families$qual <- sapply(families$fam.id,function(x, hab, ter) sum(hab[ter==x]), hab=as.matrix(hab, ncol=matNcols , nrow=matNrows, byrow=FALSE) , ter=ter)
+        families$qual <- sapply(families$fam.id,function(x, hab, ter) sum(hab[ter==x]), hab=hab, ter=ter)
         families$qual[families$qual==1] <- 0
         update_busy_bar(70) 
         Ntries <- 0  
          
         cat("simulate starting territories for") 
         
-          families <- families[order(families$fam.id),]
-          #start_dfsum <- start_df %>% group_by(id) %>% summarise(habqual= sum(hab) ) 
-           grow <- families$fam.id[which(families$qual < hab.tot.quality) ] ## id ## , pairs=FALSE = no col from/to
+        families <- families[order(families$fam.id),]
+        grow <- families$fam.id[which(families$qual < hab.tot.quality)] ## id ## , pairs=FALSE = no col from/to
         if(length(grow)>0) {  
-                 ids <-  sample(grow,length(grow))
+                 ids <-  sample(grow, length(grow))
                  cat(paste0(" ", length(grow)," families\n" ))  
                  for(id in ids) {
                      cat(paste0("family",id," " )) 
                      Ntries <- famqual <- 0              
-                     while ( Ntries<30) {
+                     while(Ntries<30) {
                  
                           
                          while(famqual<hab.tot.quality){
                               
-                              families$qual[id] <- famqual <- sum(as.matrix(hab, ncol=matNcols , nrow=matNrows, byrow=FALSE)[ter==id][as.matrix(hab, ncol=matNcols , nrow=matNrows, byrow=FALSE)[ter==id]>1], na.rm=T) # only count suitable hab
+                           families$qual[id] <- famqual <- sum(hab[ter==id][hab[ter==id]>1], na.rm=T) # only count suitable hab
  
-                              current <- which(ter==id)
-                              adj0 <- adj1 <- adj2 <-   NULL
+                           current <- which(terra::values(terra::rast(ter))==id)
+                           adj0 <- adj1 <- adj2 <-   NULL
                                                 
-                              adj0 <- adjacent(rter, current, directions=8, pairs=FALSE)
-                              adj2 <-  adj0[which(ter[adj0]==0 & as.matrix(hab, ncol=matNcols , nrow=matNrows, byrow=FALSE)[adj0]==2)] #exclude occupied territory and null/dispersal habitat
-                              adj1 <-  adj0[which(ter[adj0]==0 & as.matrix(hab, ncol=matNcols , nrow=matNrows, byrow=FALSE)[adj0]==1)] #exclude occupied territory and null/suitable habitat
+                           adj0 <- base::unique(c(terra::adjacent(rter, current, directions=8, pairs=FALSE)))
+                           adj2 <- base::unique(adj0[which(terra::rast(ter)[adj0]==0 & terra::rast(hab)[adj0]==2)]) #exclude occupied territory and null/dispersal habitat
+                           adj1 <- base::unique(adj0[which(terra::rast(ter)[adj0]==0 & terra::rast(hab)[adj0]==1)]) #exclude occupied territory and null/suitable habitat
                                        
                              if(length(adj2)>0 & Ntries<30) { 
                                        adj1 <- NULL
                                        Ntries<- Ntries+1
                                        cat("-") 
-                                       #print("adj2")
                                        best <-  adj2[sample(length(adj2),1)] #randomly pick one of the best adjacent pixels
-                                       ter[best] <- id
-                                  #print("best")
-                                  #print(best)
-                                  #print(ter[best])
-                                  #print("qual")
-                                  #print(sum(as.matrix(hab, ncol=matNcols , nrow=matNrows, byrow=FALSE)[ter==id][as.matrix(hab, ncol=matNcols , nrow=matNrows, byrow=FALSE)[ter==id]>1]), na.rm=TRUE   )
-                                  #print(as.matrix(hab, ncol=matNcols , nrow=matNrows, byrow=FALSE)[ter==id])
+                                       ter.rast <- terra::rast(ter)
+                                       terra::values(ter.rast)[best] <- id
+                                       ter <- as.matrix(ter.rast, wide = TRUE) 
                                   ## here - erase extrxa solo patches if
                                   
                                    
-                                          families$qual[id] <- famqual <- sum(as.matrix(hab, ncol=matNcols , nrow=matNrows, byrow=FALSE)[ter==id][as.matrix(hab, ncol=matNcols , nrow=matNrows, byrow=FALSE)[ter==id]>1], na.rm=TRUE) # only count suitable hab
+                                       families$qual[id] <- famqual <- sum(hab[ter==id][hab[ter==id]>1], na.rm=TRUE) # only count suitable hab
                                           patches <- NULL
-                                          xy <- xyFromCell(rter, which(ter==id & as.matrix(hab, ncol=matNcols , nrow=matNrows, byrow=FALSE)==2)  )
-                                          patches <- st_cast(  st_as_sf ( st_buffer(st_sfc(  st_multipoint(x = matrix(xy, ncol=2))) ,75)), "POLYGON"  )
+                                          xy <- terra::xyFromCell(rter, which(terra::values(terra::rast(ter))==id & terra::values(terra::rast(hab))==2))
+                                          patches <- st_cast(st_as_sf(st_buffer(st_sfc(st_multipoint(x = matrix(xy, ncol=2))), 75)), "POLYGON")
                                      
-                                          if(nrow(patches)>1) { 
-                                                   #print("split territories")           ## several territories split = keep going
-                                                   larger_patch_cells <-  unique(cellFromXY(rter,data.frame(st_coordinates(patches[which(st_area(patches)==max(st_area(patches))),])[,c(1,2)]) ))
-                                                   larger_patch_cells <- larger_patch_cells[larger_patch_cells+1 %in% which(ter==id)] #### +1?????
+                                          if(nrow(patches)>1) {          ## several territories split = keep going
+                                                   larger_patch_cells <- base::unique(terra::cellFromXY(rter, as.matrix(st_coordinates(patches[which(st_area(patches)==max(st_area(patches))),])[,c(1,2)])))
+                                                   larger_patch_cells <- larger_patch_cells[larger_patch_cells+1 %in% which(terra::values(terra::rast(ter))==id)] #### +1?????
                                                             if(length(larger_patch_cells)>7)  { 
                                                                   Ntries <- 31
                                                                   ter[ter==id] <- 99     
                                                                   famqual <- 99                     ## keep tried terr unoccupiable for that round?
-                                                                  ter[larger_patch_cells] <- id
-                                                                  families$qual[id] <-  sum(as.matrix(hab, ncol=matNcols , nrow=matNrows, byrow=FALSE)[ter==id][as.matrix(hab, ncol=matNcols , nrow=matNrows, byrow=FALSE)[ter==id]>1], na.rm=TRUE) # only count suitable hab
+                                                                  ter.rast <- terra::rast(ter)
+                                                                  terra::values(ter.rast)[larger_patch_cells] <- id
+                                                                  ter <- as.matrix(ter.rast, wide = TRUE) 
+                                                                  families$qual[id] <-  sum(hab[ter==id][hab[ter==id]>1], na.rm=TRUE) # only count suitable hab
                                                              } else { 
                                                                    families$qual[id] <- famqual <- length(larger_patch_cells)*2
                                                                     }
@@ -312,7 +290,6 @@ startpop_function <-function(pts, habmap_raster, Nsites, demog, Nyoungs_perfam) 
                                           if(families$qual[id] > hab.tot.quality & nrow(patches)==1) { ## one territory not split = win
                                                                Ntries <- 31
                                                                famqual <- 99
-                                                               #print("settled")
                                                                grow <- grow[grow!=id]              }
                               } 
                                  
@@ -321,23 +298,20 @@ startpop_function <-function(pts, habmap_raster, Nsites, demog, Nyoungs_perfam) 
                                      Ntries<- Ntries+1
                                      famqual <- 0
                                      secbest <- adj1[sample(length(adj1),1)]
-                                     ter[secbest] <- id           # id territory for next try but it is disp not suit so dont count in famdf
+                                     ter.rast <- terra::rast(ter)
+                                     terra::values(ter.rast)[secbest] <- id
+                                     ter <- as.matrix(ter.rast, wide = TRUE)          # id territory for next try but it is disp not suit so dont count in famdf
                             }
                                       
                             if(length(adj1)==0 & length(adj2)==0 |  length(adj1)>0 & Ntries>29 ) {
-                                                   #print("no option")
                                                    Ntries <- 31
                                                    famqual <- 99
-                                                       #   if(length(adj)==0) {
-                                                                grow <- grow[grow!=id]
-                                                              #  families$qual[id] <- sum(as.matrix(hab, ncol=matNcols , nrow=matNrows, byrow=FALSE)[ter==id])
-                                                                ter[ ter==id ] <- 0 # free territory
+                                                   grow <- grow[grow!=id]
+                                                   ter[ter==id] <- 0 # free territory
                              } 
-                        #print(paste0("try #",Ntries) )
                                  } # while
                            } #if N<30next try
                           cat("|")
-                     #  else { next }
                             #print("next")
                   } #id
        
@@ -346,19 +320,18 @@ startpop_function <-function(pts, habmap_raster, Nsites, demog, Nyoungs_perfam) 
          
           
         ## omit starting points within dispersal from territories and moves into dispersal previsouy recorded
-        ter[startcells$cell[startid_suboptimal] ] <- 0 
+        ter.rast <- terra::rast(ter)
+        terra::values(ter.rast)[startcells$cell[startid_suboptimal]] <- 0 
+        ter <- as.matrix(ter.rast, wide = TRUE)
         ter[ter==99] <- 0
-        ter[ as.matrix(hab, ncol=matNcols , nrow=matNrows, byrow=FALSE)<2] <- 0
+        ter[hab<2] <- 0
         
-          update_busy_bar(80) 
-        
-        #print("families post")
-        #print(families)
-        #if(any(families$qual < hab.tot.quality)) stop("Some territories are not complete")
+        update_busy_bar(80) 
+
         families$num.m[which(families$qual < floor(hab.tot.quality/2))] <- 0
         families$num.f[which(families$qual < floor(hab.tot.quality/2))] <- 0
         families$young[which(families$qual < floor(hab.tot.quality/2))] <- 0
-        # sapply(families$fam.id, release.territory, fam=families, ter=ter)
+
          
         not_settling <- length(families$fam.id[which(families$num.m+families$num.f==0)])
         cat(paste0("not_settling: ",not_settling,"  -  ")) # is it foolproof here ?
@@ -366,10 +339,10 @@ startpop_function <-function(pts, habmap_raster, Nsites, demog, Nyoungs_perfam) 
          
         update_busy_bar(90) 
            
-        values(rter) <- c(matrix(c(ter), ncol=matNcols , nrow=matNrows, byrow=FALSE))
+        terra::values(rter) <- c(matrix(c(terra::values(terra::rast(ter))), ncol=matNcols, nrow=matNrows, byrow=FALSE))
           
         tay <- tay[order(tay$family),]
-        newpts <- st_as_sf ( st_cast(st_sfc( st_multipoint(x = matrix(xyFromCell(rter, tay$index), ncol=2)) ) ,"POINT"),family=   tay$family)   # removed rev()
+        newpts <- st_as_sf(st_cast(st_sfc(st_multipoint(x = as.matrix(st_coordinates(tay)))), "POINT"), family = tay$family)   # removed rev()
         st_crs(newpts) <- mercproj       
          
              removeUI('#text', immediate = T)
@@ -379,26 +352,25 @@ startpop_function <-function(pts, habmap_raster, Nsites, demog, Nyoungs_perfam) 
          rter_sf[rter==0] <- NA # faster to omit all empty cells..
          
          ### foolproof if none settle
-     if (length(which(!is.na(values(rter)))) >0){
-              fm <- as(rasterToPolygons( rter_sf , dissolve = T),"sf") #  TRUE, takes longerbut useful  
-              fm <- fm[fm$layer>0,]
-              if(nrow(fm)>0){
-                  names(fm)[1] <- "family"
-                  fm$layer <- "starting territories"
-                }
-               famgrid <- fm
-               taysf <- as(tay,"sf")
-               st_crs(taysf)   <- mercproj  
-      }
+         if (length(which(!is.na(terra::values(rter)))) >0){
+           fm <- st_as_sf(terra::as.polygons(rter_sf, dissolve = T)) #  TRUE, takes longerbut useful  
+           fm <- fm[fm$lyr.1>0,]
+           if(nrow(fm)>0){
+             names(fm)[1] <- "family"
+             fm$layer <- "starting territories"
+           }
+           famgrid <- fm
+           taysf <- st_as_sf(tay)
+           st_crs(taysf)   <- mercproj  
+         }
            
-        if(nrow(famgrid)>0){ temp_bbox <- st_as_sfc( st_bbox( st_buffer( st_union(famgrid,taysf) ,  1500)  )) } else { temp_bbox <- st_as_sfc(temp_bbox0)}
+        if(nrow(famgrid)>0){temp_bbox <- st_as_sfc(st_bbox(st_buffer(st_union(famgrid,taysf), 1500)))} else {temp_bbox <- st_as_sfc(temp_bbox0)}
         startpop <- famgrid
          
         Nfam_settled <- nrow(families[which(families$num.f+families$num.m>1),])
-        Nfam_youngs <- length(which(families$young==1) )
-        Nfam_2youngs<- length(which(families$young==2) )
-         
-        #print("fam check")
+        Nfam_youngs <- length(which(families$young==1))
+        Nfam_2youngs<- length(which(families$young==2))
+
         Nads <- sum(families$num.f,families$num.m)
         Nyoungs<- sum(families$young) 
         
@@ -406,7 +378,7 @@ startpop_function <-function(pts, habmap_raster, Nsites, demog, Nyoungs_perfam) 
 
 return_list_start  <- list(temp_bbox,startpop,suitable,dispersal, newpts,reloc_text, 
                            families,rter,matNrows,matNcols,
-                           hab ,Nfam_settled,Nfam_youngs,Nfam_2youngs,Nads,Nyoungs)
+                           hab,Nfam_settled,Nfam_youngs,Nfam_2youngs,Nads,Nyoungs,mapr.crop)
   
  ("simulation over  -  ")
 update_busy_bar(100)
