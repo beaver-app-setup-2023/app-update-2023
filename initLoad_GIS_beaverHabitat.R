@@ -9,10 +9,10 @@ cat("beaver habitat: ")
 #window <- matrix.to.SpatPolys(window, proj=map@proj4string)
        cat("suitability map\n")
        map <- readGDAL(here("data/bvr_rc_100"))
-       map.r <- raster(extent(map))
+       map.r <- terra::rast(terra::ext(map))
        res(map.r) <- map@grid@cellsize
-       map.r[] <- map@data$band1
-       proj4string(map.r) <-  CRS(proj4string(map)) 
+       terra::values(map.r) <- map@data$band1
+       terra::crs(map.r) <-  terra::crs(proj4string(map)) 
 
  ### script uses map.r - replace NA by 0 ? see how it goes with disp/wander functions
  #map.r[which(is.na(map.r))] <- 0       

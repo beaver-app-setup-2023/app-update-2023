@@ -15,7 +15,7 @@ startpop_function <-function(pts, habmap_raster, Nsites, demog, Nyoungs_perfam) 
         
         update_busy_bar(10) 
         new.bbox <- terra::ext(c(temp_bbox0$xmin, temp_bbox0$xmax, temp_bbox0$ymin, temp_bbox0$ymax))
-        mapr.crop <- terra::crop(terra::rast(map.r), new.bbox)
+        mapr.crop <- terra::crop(map.r, new.bbox)
         
         removeUI('#text', immediate = T)
         insertUI('#placeholder', ui = tags$p(id = 'text', paste('( extracting habitat quality values for the extent )')), immediate = T)

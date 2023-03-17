@@ -14,9 +14,9 @@ if (org_name == "NatureScot"){
   if (region_name == "Glen Affric to Beauly Firth") {
 #### NatureScot first extent (Nov 202) - "from Glen Affric to Beauly Firth" <- jan save and store extents instead of loading when more than 1
    cat(region_name, "(", org_name,")\n")
-   beauly_box    <- as(as(extent(st_bbox(st_sfc(st_buffer(st_point(c(255000,845000) ), 20000) ))), "SpatialPolygons"), "sf")    ## init relevant loc point mentioned
-   affric_box    <- as(as(extent(st_bbox(st_sfc(st_buffer(st_point(c(209793 , 820544) ), 20000) ))), "SpatialPolygons"), "sf")  ## init relevant loc point mentioned
-   region_box    <- as(as(extent(st_bbox( st_union( beauly_box, affric_box) )), "SpatialPolygons"), "sf") ## extent incl. both extents
+   beauly_box    <- sf::st_as_sf(terra::as.polygons(terra::ext(st_bbox(st_sfc(st_buffer(st_point(c(255000,845000) ), 20000) )))))    ## init relevant loc point mentioned
+   affric_box    <- sf::st_as_sf(terra::as.polygons(terra::ext(st_bbox(st_sfc(st_buffer(st_point(c(209793 , 820544) ), 20000) )))))  ## init relevant loc point mentioned
+   region_box    <- sf::st_as_sf(terra::as.polygons(terra::ext(st_bbox( st_union( beauly_box, affric_box) )))) ## extent incl. both extents
 cat("spatial bounding box  -  ")
 }}
 
