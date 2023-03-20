@@ -9,7 +9,7 @@ dispersal2 <- function(id, fam, ter, hab, famsize.max, move.max, hab.tot.quality
   startf <- adjacent.id(ter, cells=which(terra::values(ter)==id), id=id, directions=8)
   startf.natal <- startf
    
-  start.here <- psample(find.best.hab(startf, hab ), 1)  ###
+  start.here <- psample(find.best.hab(startf, hab), 1)  ###
   # wander around
   path <- wander2(id, hab=hab, origin=start.here)  ### Added Mar 2020
  
@@ -36,8 +36,8 @@ dispersal2 <- function(id, fam, ter, hab, famsize.max, move.max, hab.tot.quality
   while (success == 0 & moves < move.max) {
      if(length(startf)==0) {success <- -1; next;}
     ter.here <- ter[start.here]
-    hab.here <- hab[start.here]
-    if(verbose) cat ("\tbeaver from", id, ": starting at", start.here, ", hab here =", hab.here, "\n")
+    hab.here <- terra::rast(hab)[start.here]
+    #if(verbose) cat ("\tbeaver from", id, ": starting at", start.here, ", hab here =", hab.here, "\n")
     
     #what do I do?
     if (is.na(hab.here) | hab.here==0) {
@@ -71,12 +71,13 @@ dispersal2 <- function(id, fam, ter, hab, famsize.max, move.max, hab.tot.quality
     } else if (ter.here > 0) {
       
       #try to join this territory
-      if (verbose) cat("\tbeaver from", id, ": discovered territory", ter.here, "\n")
-      famsize <- fam$num.m[ter.here] + fam$num.f[ter.here] 
+      #if (verbose) cat("\tbeaver from", id, ": discovered territory", ter.here, "\n")
+      
+      famsize <- fam$num.m[pull(ter.here)] + fam$num.f[pull(ter.here)] 
       if (famsize < famsize.max & famsize > 0) {
-        if(fam$num.m[ter.here] < fam$num.f[ter.here]) {fam$num.m[ter.here] <- fam$num.m[ter.here] +1} else {fam$num.f[ter.here] <- fam$num.f[ter.here] +1}
+        if(fam$num.m[pull(ter.here)] < fam$num.f[pull(ter.here)]) {fam$num.m[pull(ter.here)] <- fam$num.m[pull(ter.here)] +1} else {fam$num.f[pull(ter.here)] <- fam$num.f[pull(ter.here)] +1}
         success <- 1
-        if (verbose) cat("\tbeaver from", id, ": joined territory", ter.here, "\n")
+        #if (verbose) cat("\tbeaver from", id, ": joined territory", ter.here, "\n")
       } else {
         success <- 0
         if (verbose) cat("\tbeaver from", id, ": too big or empty\n")
@@ -91,12 +92,14 @@ dispersal2 <- function(id, fam, ter, hab, famsize.max, move.max, hab.tot.quality
       fam.id.new <- NROW(fam)+1
       ter.temp <- ter ### added <<  here?
       ter.temp[start.here] <- fam.id.new
-      qual <- hab[start.here]
+      rast.hab <- terra::rast(hab)
+      qual <- terra::values(rast.hab)[start.here]
         tries <- 0
       while (qual < hab.tot.quality & tries<50) {
          cat("-")
         ter.temp <- expand.territory2(ter.temp, fam.id.new, hab) ####<<
-        qual <- sum(hab[which(values(ter.temp)==fam.id.new)])
+        rast.hab <- terra::rast(hab)
+        qual <- sum(rast.hab[which(terra::values(ter.temp)==fam.id.new)], na.rm = TRUE)
          
         tries <- tries+1
       }

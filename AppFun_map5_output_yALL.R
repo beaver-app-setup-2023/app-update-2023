@@ -51,8 +51,8 @@ FUN_map_output_yALL <-function(start_terr, sim_terr3,sim_terr, sim_terr10, lay_r
                                        breaks=c("1 to 3 runs","3 to 5 runs","5 to 10 runs"  , "10 to 15 runs"),drop = FALSE ) +
                                        scale_color_manual("",values=c("1 to 3 runs"="white","3 to 5 runs"="yellow" ,"5 to 10 runs"="orange","10 to 15 runs"="red"),
                                        breaks=c("1 to 3 runs","3 to 5 runs","5 to 10 runs"  , "10 to 15 runs"),drop = FALSE ) +
-                              #         geom_sf(data=sim_terr10, aes(fill=Nruns,col=Nruns), alpha=1)+
-                              #          geom_sf(data=chull_y10_all, fill=alpha("magenta",.1),col=1)+
+                                       geom_sf(data=sim_terr10, aes(fill=Nruns,col=Nruns), alpha=1)+
+                              #         geom_sf(data=chull_y10_all, fill=alpha("magenta",.1),col=1)+
                                        coord_sf(crs = mercproj, expand=F) + annotation_scale(location = "bl")+
                                        theme(axis.text=element_blank())
           }
